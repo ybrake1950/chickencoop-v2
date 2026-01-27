@@ -1,0 +1,16 @@
+{
+  "region": "us-east-1",
+  "s3": {
+    "bucket": "chickencoop-bucket",
+    "video_prefix": "videos/",
+    "csv_prefix": "csv/"
+  },
+  "iot": {
+    "endpoint": "your-iot-endpoint.iot.us-east-1.amazonaws.com",
+    "thing_name": "chickencoop",
+    "topic_prefix": "chickencoop"
+  },
+  "sns": {
+    "topic_arn": "arn:aws:sns:us-east-1:123456789:alerts"
+  }
+}

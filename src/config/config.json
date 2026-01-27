@@ -1,0 +1,30 @@
+{
+  "sensors": {
+    "read_interval": 300,
+    "temperature": {
+      "min_threshold": 32,
+      "max_threshold": 95,
+      "unit": "fahrenheit"
+    },
+    "humidity": {
+      "min_threshold": 30,
+      "max_threshold": 80
+    }
+  },
+  "camera": {
+    "resolution": [1280, 720],
+    "framerate": 24,
+    "rotation": 0
+  },
+  "motion": {
+    "enabled": true,
+    "sensitivity": 50,
+    "min_area": 500,
+    "recording_duration": 30
+  },
+  "headcount": {
+    "enabled": true,
+    "schedule_time": "19:00",
+    "expected_count": 6
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "device_id": "coop1",
+  "device_type": "raspberry_pi_3b",
+  "camera": {
+    "resolution": [1280, 720],
+    "framerate": 24
+  }
+}
