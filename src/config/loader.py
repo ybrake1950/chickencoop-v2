@@ -36,12 +36,36 @@ def load_config(path: Path) -> Dict[str, Any]:
 
 
 def load_aws_config(path: Path) -> Dict[str, Any]:
-    """Load AWS configuration from a JSON file."""
+    """
+    Load AWS configuration from a JSON file.
+
+    Args:
+        path: Path to the AWS configuration file
+
+    Returns:
+        Dictionary containing AWS configuration data
+
+    Raises:
+        FileNotFoundError: If the file doesn't exist
+        json.JSONDecodeError: If the file contains invalid JSON
+    """
     return load_config(path)
 
 
 def load_device_config(path: Path) -> Dict[str, Any]:
-    """Load device-specific configuration from a JSON file."""
+    """
+    Load device-specific configuration from a JSON file.
+
+    Args:
+        path: Path to the device configuration file
+
+    Returns:
+        Dictionary containing device configuration data
+
+    Raises:
+        FileNotFoundError: If the file doesn't exist
+        json.JSONDecodeError: If the file contains invalid JSON
+    """
     return load_config(path)
 
 

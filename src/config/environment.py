@@ -40,7 +40,16 @@ def get_env(name: str, default: Optional[str] = None, required: bool = False) ->
 
 
 def get_env_int(name: str, default: Optional[int] = None) -> Optional[int]:
-    """Get an environment variable as an integer."""
+    """
+    Get an environment variable as an integer.
+
+    Args:
+        name: Name of the environment variable
+        default: Default value if not set
+
+    Returns:
+        The environment variable value as integer, or default if not set
+    """
     value = os.environ.get(name)
 
     if value is None:
@@ -50,7 +59,16 @@ def get_env_int(name: str, default: Optional[int] = None) -> Optional[int]:
 
 
 def get_env_float(name: str, default: Optional[float] = None) -> Optional[float]:
-    """Get an environment variable as a float."""
+    """
+    Get an environment variable as a float.
+
+    Args:
+        name: Name of the environment variable
+        default: Default value if not set
+
+    Returns:
+        The environment variable value as float, or default if not set
+    """
     value = os.environ.get(name)
 
     if value is None:

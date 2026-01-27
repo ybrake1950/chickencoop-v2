@@ -10,7 +10,18 @@ class ConfigValidationError(Exception):
 
 
 def validate_config(config: Dict[str, Any]) -> bool:
-    """Validate the full application configuration."""
+    """
+    Validate the full application configuration.
+
+    Args:
+        config: Configuration dictionary to validate
+
+    Returns:
+        True if configuration is valid
+
+    Raises:
+        ConfigValidationError: If configuration is invalid or missing required sections
+    """
     if not config:
         raise ConfigValidationError("Configuration cannot be empty")
 
@@ -24,7 +35,18 @@ def validate_config(config: Dict[str, Any]) -> bool:
 
 
 def validate_sensor_config(config: Dict[str, Any]) -> bool:
-    """Validate sensor configuration."""
+    """
+    Validate sensor configuration.
+
+    Args:
+        config: Sensor configuration dictionary
+
+    Returns:
+        True if configuration is valid
+
+    Raises:
+        ConfigValidationError: If read_interval or thresholds are invalid
+    """
     if config.get("read_interval", 1) <= 0:
         raise ConfigValidationError("read_interval must be positive")
 
@@ -42,7 +64,18 @@ def validate_sensor_config(config: Dict[str, Any]) -> bool:
 
 
 def validate_camera_config(config: Dict[str, Any]) -> bool:
-    """Validate camera configuration."""
+    """
+    Validate camera configuration.
+
+    Args:
+        config: Camera configuration dictionary
+
+    Returns:
+        True if configuration is valid
+
+    Raises:
+        ConfigValidationError: If resolution, framerate, or rotation are invalid
+    """
     resolution = config.get("resolution", [])
     if not isinstance(resolution, list) or len(resolution) != 2:
         raise ConfigValidationError("resolution must be a list of two integers")
@@ -62,7 +95,18 @@ def validate_camera_config(config: Dict[str, Any]) -> bool:
 
 
 def validate_motion_config(config: Dict[str, Any]) -> bool:
-    """Validate motion detection configuration."""
+    """
+    Validate motion detection configuration.
+
+    Args:
+        config: Motion detection configuration dictionary
+
+    Returns:
+        True if configuration is valid
+
+    Raises:
+        ConfigValidationError: If sensitivity, min_area, or recording_duration are invalid
+    """
     sensitivity = config.get("sensitivity", 50)
     if sensitivity < 0 or sensitivity > 100:
         raise ConfigValidationError("sensitivity must be between 0 and 100")
@@ -79,7 +123,18 @@ def validate_motion_config(config: Dict[str, Any]) -> bool:
 
 
 def validate_aws_config(config: Dict[str, Any]) -> bool:
-    """Validate AWS configuration."""
+    """
+    Validate AWS configuration.
+
+    Args:
+        config: AWS configuration dictionary
+
+    Returns:
+        True if configuration is valid
+
+    Raises:
+        ConfigValidationError: If region is missing or S3/SNS/IoT settings are invalid
+    """
     if "region" not in config:
         raise ConfigValidationError("AWS config must specify a region")
 
