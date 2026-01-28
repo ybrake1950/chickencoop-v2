@@ -15,7 +15,15 @@ diagnostics_bp = Blueprint('diagnostics', __name__, url_prefix='/api/diagnostics
 
 
 def _truncate_credential(value: str) -> str:
-    """Truncate credential for secure display."""
+    """Truncate credential for secure display by showing only first and last 4 chars.
+
+    Args:
+        value: The credential string to truncate.
+
+    Returns:
+        str: Truncated credential showing first 4 and last 4 characters,
+             or original value if 8 characters or less.
+    """
     if not value or len(value) <= 8:
         return value
     return f"{value[:4]}...{value[-4:]}"

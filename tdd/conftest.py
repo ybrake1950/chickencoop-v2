@@ -362,9 +362,11 @@ def freeze_time(fixed_datetime: datetime) -> Generator[None, None, None]:
 def flask_app() -> Generator[Any, None, None]:
     """Provide a Flask test application."""
     try:
-        from flask import Flask
+        from flask import Flask, jsonify
         from src.api.routes.admin_routes import admin_bp
         from src.api.routes.alert_routes import alert_bp
+        from src.api.routes.chickens import chickens_bp
+        from src.api.routes.dashboard_routes import dashboard_bp
         from src.api.routes.diagnostics_routes import diagnostics_bp
         from src.api.routes.headcount_routes import headcount_bp
         from src.api.routes.settings_routes import settings_bp
@@ -374,9 +376,16 @@ def flask_app() -> Generator[Any, None, None]:
         app.config['WTF_CSRF_ENABLED'] = False
         app.register_blueprint(admin_bp)
         app.register_blueprint(alert_bp)
+        app.register_blueprint(chickens_bp)
+        app.register_blueprint(dashboard_bp)
         app.register_blueprint(diagnostics_bp)
         app.register_blueprint(headcount_bp)
         app.register_blueprint(settings_bp)
+
+        @app.errorhandler(404)
+        def not_found(error):
+            return jsonify({"error": "Not found"}), 404
+
         yield app
     except ImportError:
         yield None

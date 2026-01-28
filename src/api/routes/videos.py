@@ -20,22 +20,57 @@ def get_videos(
     page: Optional[int] = None,
     per_page: Optional[int] = None
 ) -> List[Dict[str, Any]]:
-    """Retrieve videos with optional filtering."""
+    """Retrieve videos with optional filtering and pagination.
+
+    Args:
+        camera: Filter by camera name (e.g., 'indoor', 'outdoor').
+        start_date: Filter videos from this date (ISO format).
+        end_date: Filter videos until this date (ISO format).
+        retained: Filter by retention status ('true'/'false').
+        page: Page number for pagination.
+        per_page: Number of results per page.
+
+    Returns:
+        List of video dictionaries matching the filter criteria.
+    """
     return []
 
 
 def get_video_by_id(video_id: int) -> Optional[Dict[str, Any]]:
-    """Retrieve a single video by ID. Returns None if not found."""
+    """Retrieve a single video by its unique identifier.
+
+    Args:
+        video_id: The unique identifier of the video.
+
+    Returns:
+        Video dictionary if found, None otherwise.
+    """
     return None
 
 
 def retain_video(s3_key: str, user_id: int, note: Optional[str] = None) -> bool:
-    """Mark a video for permanent retention."""
+    """Mark a video for permanent retention to prevent automatic deletion.
+
+    Args:
+        s3_key: The S3 object key identifying the video.
+        user_id: The ID of the user requesting retention.
+        note: Optional note explaining why video is being retained.
+
+    Returns:
+        bool: True if retention was successful, False otherwise.
+    """
     return True
 
 
 def delete_video(video_id: int) -> bool:
-    """Delete a video by ID."""
+    """Delete a video by its unique identifier.
+
+    Args:
+        video_id: The unique identifier of the video to delete.
+
+    Returns:
+        bool: True if deletion was successful, False if video not found.
+    """
     return False
 
 
@@ -44,7 +79,11 @@ def delete_video(video_id: int) -> bool:
 # =============================================================================
 
 def register_routes(app):
-    """Register video routes with Flask app."""
+    """Register video routes with Flask app.
+
+    Args:
+        app: The Flask application instance to register routes with.
+    """
 
     @app.route('/api/videos', methods=['GET'])
     def list_videos():

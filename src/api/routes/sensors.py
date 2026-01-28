@@ -9,12 +9,22 @@ from flask import jsonify, request, session, Response
 
 
 def get_alerts():
-    """Get current alerts. Can be mocked in tests."""
+    """Retrieve current active alerts from the system.
+
+    This function can be mocked in tests to simulate various alert conditions.
+
+    Returns:
+        list: List of alert dictionaries, empty if no active alerts.
+    """
     return []
 
 
 def register_routes(app):
-    """Register sensor routes with the Flask app."""
+    """Register sensor routes with the Flask app.
+
+    Args:
+        app: The Flask application instance to register routes with.
+    """
 
     @app.route('/api/status')
     def api_status():

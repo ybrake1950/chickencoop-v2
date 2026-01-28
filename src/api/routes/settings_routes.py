@@ -39,7 +39,11 @@ _settings = {
 
 
 def reset_settings_to_defaults():
-    """Reset settings to defaults (used for testing)."""
+    """Reset all settings to their default values.
+
+    This function is primarily used for testing to ensure a clean state.
+    Resets temperature unit, thresholds, and notification preferences.
+    """
     _settings['temperature_unit'] = DEFAULT_SETTINGS['temperature_unit']
     _settings['thresholds'] = DEFAULT_SETTINGS['thresholds'].copy()
     _settings['notifications'] = DEFAULT_SETTINGS['notifications'].copy()
