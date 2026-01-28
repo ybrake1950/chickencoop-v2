@@ -363,19 +363,52 @@ def flask_app() -> Generator[Any, None, None]:
     """Provide a Flask test application."""
     try:
         from flask import Flask
+        from src.api.routes.admin_routes import admin_bp
+        from src.api.routes.alert_routes import alert_bp
+        from src.api.routes.diagnostics_routes import diagnostics_bp
+        from src.api.routes.headcount_routes import headcount_bp
+        from src.api.routes.settings_routes import settings_bp
         app = Flask(__name__)
         app.config['TESTING'] = True
         app.config['SECRET_KEY'] = 'test-secret-key'
         app.config['WTF_CSRF_ENABLED'] = False
+        app.register_blueprint(admin_bp)
+        app.register_blueprint(alert_bp)
+        app.register_blueprint(diagnostics_bp)
+        app.register_blueprint(headcount_bp)
+        app.register_blueprint(settings_bp)
         yield app
     except ImportError:
         yield None
 
 
 @pytest.fixture
-def flask_client(flask_app: Any) -> Generator[Any, None, None]:
-    """Provide a Flask test client."""
+def flask_client(flask_app: Any, request: Any) -> Generator[Any, None, None]:
+    """Provide a Flask test client with optional mock injection."""
     if flask_app:
+        # Reset settings to defaults before each test
+        try:
+            from src.api.routes.settings_routes import reset_settings_to_defaults
+            reset_settings_to_defaults()
+        except ImportError:
+            pass
+
+        # Check if mock fixtures are being used in the test
+        mock_s3 = None
+        mock_sns = None
+        if 'mock_s3_client' in request.fixturenames:
+            mock_s3 = request.getfixturevalue('mock_s3_client')
+        if 'mock_sns_client' in request.fixturenames:
+            mock_sns = request.getfixturevalue('mock_sns_client')
+
+        @flask_app.before_request
+        def inject_mocks():
+            from flask import g
+            if mock_s3:
+                g.s3_client = mock_s3
+            if mock_sns:
+                g.sns_client = mock_sns
+
         with flask_app.test_client() as client:
             yield client
     else:
