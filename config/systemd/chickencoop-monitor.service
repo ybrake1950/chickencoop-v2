@@ -1,0 +1,18 @@
+[Unit]
+Description=Chicken Coop Monitoring Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/chickencoop
+ExecStart=/home/pi/chickencoop/venv/bin/python -m hardware.main
+Restart=on-failure
+RestartSec=10
+Environment="COOP_ID=coop1"
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

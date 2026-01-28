@@ -1,0 +1,123 @@
+name: ChickenCoop CI/CD
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      deploy_target:
+        description: 'Deployment target'
+        required: false
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - backend
+          - webapp
+          - pis
+          - all
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      python: ${{ steps.filter.outputs.python }}
+      backend: ${{ steps.filter.outputs.backend }}
+      webapp: ${{ steps.filter.outputs.webapp }}
+      config: ${{ steps.filter.outputs.config }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            python:
+              - 'hardware/**/*.py'
+            backend:
+              - 'webapp/backend/**'
+            webapp:
+              - 'webapp/frontend/**'
+            config:
+              - 'config/**'
+
+  ci-python:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: Run pytest
+        run: pytest tdd/ -v --cov
+
+  ci-configs:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate JSON configs
+        run: |
+          for file in config/*.json; do
+            python -m json.tool "$file" > /dev/null
+          done
+
+  ci-webapp:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install and build
+        run: |
+          cd webapp/frontend
+          npm ci
+          npm run build
+
+  ci-security:
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run security scan
+        uses: snyk/actions/python@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+  deploy-backend:
+    runs-on: ubuntu-latest
+    needs: [detect-changes, ci-python, ci-configs]
+    if: github.ref == 'refs/heads/main' && needs.detect-changes.outputs.backend == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+      - name: Deploy to Lambda
+        run: |
+          cd webapp/backend
+          zip -r function.zip .
+          aws lambda update-function-code --function-name chickencoop-api --zip-file fileb://function.zip
+      - name: Run health check
+        run: |
+          curl -f https://api.chickencoop.example.com/health || exit 1
