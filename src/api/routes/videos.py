@@ -87,7 +87,19 @@ def register_routes(app):
 
     @app.route('/api/videos', methods=['GET'])
     def list_videos():
-        """GET /api/videos - List all videos with filtering."""
+        """List all videos with optional filtering and pagination.
+
+        Query Parameters:
+            camera: Filter by camera name ('indoor'/'outdoor').
+            start_date: Filter videos from this date (ISO format).
+            end_date: Filter videos until this date (ISO format).
+            retained: Filter by retention status ('true'/'false').
+            page: Page number for pagination.
+            per_page: Number of results per page.
+
+        Returns:
+            tuple: JSON response with videos list and 200, or 401 if not authenticated.
+        """
         if 'user_id' not in session:
             return jsonify({"error": "Authentication required"}), 401
 
@@ -115,7 +127,14 @@ def register_routes(app):
 
     @app.route('/api/videos/<int:video_id>', methods=['GET'])
     def get_single_video(video_id):
-        """GET /api/videos/<id> - Get single video details."""
+        """Get details for a single video by ID.
+
+        Args:
+            video_id: The unique identifier of the video.
+
+        Returns:
+            tuple: JSON response with video details and 200, 401 if not authenticated, or 404 if not found.
+        """
         if 'user_id' not in session:
             return jsonify({"error": "Authentication required"}), 401
 
@@ -128,7 +147,13 @@ def register_routes(app):
 
     @app.route('/api/videos/retain', methods=['POST'])
     def retain_video_route():
-        """POST /api/videos/retain - Mark video for permanent retention."""
+        """Mark a video for permanent retention.
+
+        Prevents automatic deletion of the video. Requires s3_key in request body.
+
+        Returns:
+            tuple: JSON response with success message and 200, 401 if not authenticated, or 400 if s3_key missing.
+        """
         if 'user_id' not in session:
             return jsonify({"error": "Authentication required"}), 401
 
@@ -147,7 +172,14 @@ def register_routes(app):
 
     @app.route('/api/videos/<int:video_id>', methods=['DELETE'])
     def delete_video_route(video_id):
-        """DELETE /api/videos/<id> - Delete a video."""
+        """Delete a video by its ID.
+
+        Args:
+            video_id: The unique identifier of the video to delete.
+
+        Returns:
+            tuple: JSON response with success message and 200, 401 if not authenticated, 404 if not found, or 400 on error.
+        """
         if 'user_id' not in session:
             return jsonify({"error": "Authentication required"}), 401
 

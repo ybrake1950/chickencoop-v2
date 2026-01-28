@@ -28,7 +28,11 @@ def register_routes(app):
 
     @app.route('/api/status')
     def api_status():
-        """Return current sensor status."""
+        """Get the current sensor status with temperature and humidity.
+
+        Returns:
+            tuple: JSON response with temperature, humidity, and timestamp.
+        """
         return jsonify({
             "temperature": 72.5,
             "humidity": 65.0,
@@ -37,7 +41,15 @@ def register_routes(app):
 
     @app.route('/api/sensor-data')
     def api_sensor_data():
-        """Return sensor data with optional filtering."""
+        """Get sensor data with optional filtering by range and coop.
+
+        Query Parameters:
+            range: Time range for data filtering.
+            coop: Filter by specific coop ID.
+
+        Returns:
+            tuple: JSON response with sensor data array.
+        """
         # Query params are accepted but filtering is minimal for now
         _ = request.args.get('range')
         _ = request.args.get('coop')
@@ -47,7 +59,11 @@ def register_routes(app):
 
     @app.route('/api/alerts')
     def api_alerts():
-        """Return current alerts."""
+        """Get the list of current active alerts.
+
+        Returns:
+            tuple: JSON response with alerts array.
+        """
         alerts = get_alerts()
         return jsonify({
             "alerts": alerts
@@ -55,7 +71,13 @@ def register_routes(app):
 
     @app.route('/api/download-csv')
     def api_download_csv():
-        """Download sensor data as CSV."""
+        """Download sensor data as a CSV file.
+
+        Requires authentication. Returns sensor readings formatted as CSV.
+
+        Returns:
+            Response: CSV file download or 401 if not authenticated.
+        """
         if 'user_id' not in session:
             return Response("Unauthorized", status=401)
 

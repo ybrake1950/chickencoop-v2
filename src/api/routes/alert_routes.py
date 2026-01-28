@@ -81,7 +81,11 @@ def is_valid_email(email):
 
 @alert_bp.route('/types', methods=['GET'])
 def get_alert_types():
-    """Get list of available alert types."""
+    """Get the list of available alert types and their descriptions.
+
+    Returns:
+        tuple: JSON response with alert types array.
+    """
     return jsonify({'types': ALERT_TYPES})
 
 
@@ -91,7 +95,14 @@ def get_alert_types():
 
 @alert_bp.route('/subscribe', methods=['POST'])
 def subscribe_to_alerts():
-    """Subscribe email to alert notifications."""
+    """Subscribe an email address to alert notifications.
+
+    Requires email and at least one alert_type in the request body.
+    Sends a confirmation email that must be verified.
+
+    Returns:
+        tuple: JSON response with subscription status and 200, or error with 400.
+    """
     data = request.get_json() or {}
     email = data.get('email')
     alert_types = data.get('alert_types', [])
@@ -135,7 +146,11 @@ def subscribe_to_alerts():
 
 @alert_bp.route('/confirm', methods=['POST'])
 def confirm_subscription():
-    """Confirm subscription via token."""
+    """Confirm a subscription using the token from the confirmation email.
+
+    Returns:
+        tuple: JSON response with confirmation status and 200, or error with 400.
+    """
     data = request.get_json() or {}
     token = data.get('token')
 
@@ -147,7 +162,14 @@ def confirm_subscription():
 
 @alert_bp.route('/subscription', methods=['GET'])
 def get_subscription():
-    """Get subscription status for an email."""
+    """Get the subscription status for an email address.
+
+    Query Parameters:
+        email: The email address to check subscription status for.
+
+    Returns:
+        tuple: JSON response with subscription details, 400 if email missing, or 404 if not found.
+    """
     email = request.args.get('email')
 
     if not email:
@@ -162,7 +184,11 @@ def get_subscription():
 
 @alert_bp.route('/subscription', methods=['PUT'])
 def update_subscription():
-    """Update subscription alert types."""
+    """Update the alert types for an existing subscription.
+
+    Returns:
+        tuple: JSON response with updated subscription, 400 if email missing, or 404 if not found.
+    """
     data = request.get_json() or {}
     email = data.get('email')
     alert_types = data.get('alert_types', [])
@@ -180,7 +206,13 @@ def update_subscription():
 
 @alert_bp.route('/subscription', methods=['DELETE'])
 def unsubscribe():
-    """Unsubscribe from alerts."""
+    """Unsubscribe an email from all alerts.
+
+    Requires confirmed=true in request body for safety.
+
+    Returns:
+        tuple: JSON response with success status, or 400 if not confirmed.
+    """
     data = request.get_json() or {}
     email = data.get('email')
     confirmed = data.get('confirmed', False)
@@ -200,7 +232,11 @@ def unsubscribe():
 
 @alert_bp.route('/test', methods=['POST'])
 def send_test_alert():
-    """Send a test alert to verify email delivery."""
+    """Send a test alert to verify email delivery is working.
+
+    Returns:
+        tuple: JSON response with sent status and alert details.
+    """
     data = request.get_json() or {}
     email = data.get('email')
     alert_type = data.get('alert_type')
@@ -227,7 +263,17 @@ def send_test_alert():
 
 @alert_bp.route('/history', methods=['GET'])
 def get_alert_history():
-    """Get history of sent alerts with optional filtering."""
+    """Get the history of sent alerts with filtering and pagination.
+
+    Query Parameters:
+        type: Filter by alert type.
+        search: Search within alert messages.
+        page: Page number (default: 1).
+        limit: Results per page (default: 10).
+
+    Returns:
+        tuple: JSON response with paginated alerts and metadata.
+    """
     alert_type = request.args.get('type')
     search = request.args.get('search')
     page = request.args.get('page', 1, type=int)
@@ -265,7 +311,13 @@ def get_alert_history():
 
 @alert_bp.route('/info', methods=['GET'])
 def get_alert_info():
-    """Get information about alert system."""
+    """Get information about the alert system configuration.
+
+    Returns delivery method, cooldown settings, and privacy information.
+
+    Returns:
+        tuple: JSON response with alert system configuration details.
+    """
     return jsonify({
         'delivery_method': 'AWS SNS (Simple Notification Service)',
         'cooldown_minutes': 60,

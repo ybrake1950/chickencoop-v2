@@ -6,7 +6,7 @@ Provides local CSV file storage with daily rotation for sensor readings.
 
 import csv
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Any
 
@@ -228,3 +228,51 @@ class CSVStorage:
             csv_file: Path to the file that was backed up.
         """
         self._backed_up_files.add(csv_file)
+
+    def append_reading(self, readings: Dict[str, Any], coop_id: str) -> None:
+        """
+        Append sensor readings from a monitor to the CSV file.
+
+        Writes directly to base_path if it's a .csv file, otherwise uses daily rotation.
+        Handles both flat readings and nested readings from SensorMonitor.read_all().
+
+        Args:
+            readings: Dictionary with sensor readings (temperature, humidity, etc.)
+            coop_id: Identifier for the coop.
+        """
+        timestamp = datetime.now(timezone.utc)
+
+        # Handle nested readings from SensorMonitor (e.g., {"combined": {"temperature": 72.5}})
+        temperature = readings.get("temperature")
+        humidity = readings.get("humidity")
+
+        if temperature is None or humidity is None:
+            # Try to extract from nested sensor readings
+            for key, value in readings.items():
+                if isinstance(value, dict):
+                    if temperature is None:
+                        temperature = value.get("temperature")
+                    if humidity is None:
+                        humidity = value.get("humidity")
+
+        temperature = temperature if temperature is not None else 0.0
+        humidity = humidity if humidity is not None else 0.0
+
+        # If base_path is a .csv file, write directly to it
+        if str(self.base_path).endswith(".csv"):
+            file_path = self.base_path
+            needs_header = self._file_needs_header(file_path)
+
+            with open(file_path, "a", newline="") as f:
+                writer = csv.writer(f)
+                if needs_header:
+                    writer.writerow(self.HEADER)
+                timestamp_str = timestamp.strftime("%Y-%m-%d %H:%M:%S")
+                writer.writerow([timestamp_str, temperature, humidity, coop_id])
+        else:
+            self.write_reading(
+                timestamp=timestamp,
+                temperature=temperature,
+                humidity=humidity,
+                coop_id=coop_id
+            )

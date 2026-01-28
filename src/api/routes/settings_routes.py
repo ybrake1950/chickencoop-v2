@@ -55,13 +55,23 @@ def reset_settings_to_defaults():
 
 @settings_bp.route('/temperature-unit', methods=['GET'])
 def get_temperature_unit():
-    """Get current temperature unit preference."""
+    """Get the current temperature unit preference.
+
+    Returns:
+        tuple: JSON response with unit ('F' or 'C') and 200 status code.
+    """
     return jsonify({'unit': _settings['temperature_unit']})
 
 
 @settings_bp.route('/temperature-unit', methods=['PUT'])
 def set_temperature_unit():
-    """Set temperature unit preference."""
+    """Set the temperature unit preference.
+
+    Accepts 'F' for Fahrenheit or 'C' for Celsius.
+
+    Returns:
+        tuple: JSON response with updated unit and 200, or error with 400.
+    """
     data = request.get_json() or {}
     unit = data.get('unit')
 
@@ -78,13 +88,24 @@ def set_temperature_unit():
 
 @settings_bp.route('/thresholds', methods=['GET'])
 def get_thresholds():
-    """Get current alert thresholds."""
+    """Get the current alert threshold settings.
+
+    Returns:
+        tuple: JSON response with temperature and humidity thresholds.
+    """
     return jsonify(_settings['thresholds'])
 
 
 @settings_bp.route('/thresholds', methods=['PUT'])
 def set_thresholds():
-    """Set alert thresholds."""
+    """Set alert threshold values for temperature and humidity.
+
+    Validates that min values are less than max values and
+    humidity is within 0-100 range.
+
+    Returns:
+        tuple: JSON response with updated thresholds and 200, or error with 400.
+    """
     data = request.get_json() or {}
 
     temp_min = data.get('temperature_min', _settings['thresholds']['temperature_min'])
@@ -118,13 +139,24 @@ def set_thresholds():
 
 @settings_bp.route('/notifications', methods=['GET'])
 def get_notifications():
-    """Get current notification preferences."""
+    """Get the current notification preference settings.
+
+    Returns:
+        tuple: JSON response with notification settings (email, alerts).
+    """
     return jsonify(_settings['notifications'])
 
 
 @settings_bp.route('/notifications', methods=['PUT'])
 def set_notifications():
-    """Set notification preferences."""
+    """Update notification preferences.
+
+    Accepts boolean values for email_enabled, temperature_alerts,
+    humidity_alerts, and system_alerts.
+
+    Returns:
+        tuple: JSON response with updated notification settings.
+    """
     data = request.get_json() or {}
 
     if 'email_enabled' in data:
@@ -145,7 +177,13 @@ def set_notifications():
 
 @settings_bp.route('/reset', methods=['POST'])
 def reset_settings():
-    """Reset all settings to defaults."""
+    """Reset all settings to their default values.
+
+    Restores temperature unit, thresholds, and notifications to defaults.
+
+    Returns:
+        tuple: JSON response with success status and 200.
+    """
     _settings['temperature_unit'] = DEFAULT_SETTINGS['temperature_unit']
     _settings['thresholds'] = DEFAULT_SETTINGS['thresholds'].copy()
     _settings['notifications'] = DEFAULT_SETTINGS['notifications'].copy()

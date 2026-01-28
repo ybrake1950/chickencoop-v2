@@ -31,7 +31,14 @@ def _truncate_credential(value: str) -> str:
 
 @diagnostics_bp.route('/run', methods=['GET'])
 def run_all_diagnostics():
-    """Run all diagnostic checks and return results."""
+    """Run all diagnostic checks and return comprehensive results.
+
+    Checks configuration, authentication tokens, AWS credentials,
+    and API connectivity status.
+
+    Returns:
+        tuple: JSON response with list of diagnostic check results.
+    """
     checks = [
         {
             'name': 'amplify_config_loaded',
@@ -115,7 +122,14 @@ def run_all_diagnostics():
 
 @diagnostics_bp.route('/force-refresh', methods=['POST'])
 def force_refresh():
-    """Force credential refresh by clearing cache and triggering signout."""
+    """Force a credential refresh by clearing caches and triggering signout.
+
+    Clears local storage, cached credentials, and initiates a sign-out
+    to force re-authentication.
+
+    Returns:
+        tuple: JSON response with refresh status and redirect URL.
+    """
     return jsonify({
         'cache_cleared': True,
         'localstorage_cleared': True,
@@ -126,7 +140,14 @@ def force_refresh():
 
 @diagnostics_bp.route('/iam-status', methods=['GET'])
 def get_iam_status():
-    """Get IAM policy attachment status."""
+    """Get the IAM policy attachment and deployment status.
+
+    Returns information about the Cognito role configuration and
+    Lambda invoke permissions.
+
+    Returns:
+        tuple: JSON response with IAM role and policy status.
+    """
     return jsonify({
         'role': 'Cognito_ChickenCoopAuth_Role',
         'policy_attached': True,
@@ -137,7 +158,14 @@ def get_iam_status():
 
 @diagnostics_bp.route('/troubleshoot/<error_code>', methods=['GET'])
 def get_troubleshooting_steps(error_code: str):
-    """Get troubleshooting steps for specific error codes."""
+    """Get step-by-step troubleshooting guide for a specific error code.
+
+    Args:
+        error_code: The HTTP error code to get troubleshooting steps for.
+
+    Returns:
+        tuple: JSON response with ordered list of troubleshooting steps.
+    """
     guides = {
         '403': {
             'steps': [

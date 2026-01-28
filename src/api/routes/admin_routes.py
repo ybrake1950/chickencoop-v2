@@ -58,7 +58,11 @@ AVAILABLE_SCRIPTS = [
 
 @admin_bp.route('/health/memory', methods=['GET'])
 def get_memory_metrics():
-    """Get Raspberry Pi memory usage metrics."""
+    """Get Raspberry Pi memory usage metrics.
+
+    Returns:
+        tuple: JSON response with used_percent, available_mb, and total_mb.
+    """
     return jsonify({
         'used_percent': 45.5,
         'available_mb': 2048,
@@ -68,7 +72,11 @@ def get_memory_metrics():
 
 @admin_bp.route('/health/storage', methods=['GET'])
 def get_storage_metrics():
-    """Get Raspberry Pi disk storage metrics."""
+    """Get Raspberry Pi disk storage metrics.
+
+    Returns:
+        tuple: JSON response with used_percent, available_gb, and total_gb.
+    """
     return jsonify({
         'used_percent': 35.0,
         'available_gb': 20.5,
@@ -78,7 +86,11 @@ def get_storage_metrics():
 
 @admin_bp.route('/health/s3-storage', methods=['GET'])
 def get_s3_storage_metrics():
-    """Get S3 video storage metrics."""
+    """Get S3 video storage metrics.
+
+    Returns:
+        tuple: JSON response with video_count and total_size_gb.
+    """
     return jsonify({
         'video_count': 150,
         'total_size_gb': 5.2
@@ -87,7 +99,11 @@ def get_s3_storage_metrics():
 
 @admin_bp.route('/health/billing', methods=['GET'])
 def get_billing_metrics():
-    """Get AWS month-to-date billing by service."""
+    """Get AWS month-to-date billing breakdown by service.
+
+    Returns:
+        tuple: JSON response with total_cost and by_service breakdown.
+    """
     return jsonify({
         'total_cost': 12.50,
         'by_service': {
@@ -100,7 +116,13 @@ def get_billing_metrics():
 
 @admin_bp.route('/health', methods=['GET'])
 def get_all_health_metrics():
-    """Get all health metrics in one call."""
+    """Get all health metrics in a single API call.
+
+    Returns memory, storage, and S3 storage metrics with timestamp.
+
+    Returns:
+        tuple: JSON response with all health metrics.
+    """
     return jsonify({
         'memory': {
             'used_percent': 45.5,
@@ -122,7 +144,11 @@ def get_all_health_metrics():
 
 @admin_bp.route('/health/refresh', methods=['POST'])
 def refresh_health_metrics():
-    """Force refresh of health metrics."""
+    """Force a refresh of all health metrics from the Pi.
+
+    Returns:
+        tuple: JSON response with last_updated timestamp.
+    """
     return jsonify({
         'last_updated': datetime.now(timezone.utc).isoformat()
     })
@@ -134,13 +160,21 @@ def refresh_health_metrics():
 
 @admin_bp.route('/camera-settings', methods=['GET'])
 def get_camera_settings():
-    """Get current camera settings."""
+    """Get current camera configuration settings.
+
+    Returns:
+        tuple: JSON response with indoor/outdoor enabled and motion recording status.
+    """
     return jsonify(_camera_settings)
 
 
 @admin_bp.route('/camera-settings', methods=['PUT'])
 def update_camera_settings():
-    """Update camera settings."""
+    """Update camera configuration settings.
+
+    Returns:
+        tuple: JSON response with updated camera settings.
+    """
     data = request.get_json() or {}
 
     if 'indoor_enabled' in data:
@@ -159,13 +193,21 @@ def update_camera_settings():
 
 @admin_bp.route('/headcount-settings', methods=['GET'])
 def get_headcount_settings():
-    """Get nightly headcount settings."""
+    """Get nightly headcount automation settings.
+
+    Returns:
+        tuple: JSON response with enabled status and scheduled_time.
+    """
     return jsonify(_headcount_settings)
 
 
 @admin_bp.route('/headcount-settings', methods=['PUT'])
 def update_headcount_settings():
-    """Update headcount settings."""
+    """Update nightly headcount automation settings.
+
+    Returns:
+        tuple: JSON response with updated headcount settings.
+    """
     data = request.get_json() or {}
 
     if 'enabled' in data:
@@ -182,13 +224,23 @@ def update_headcount_settings():
 
 @admin_bp.route('/timezone', methods=['GET'])
 def get_timezone():
-    """Get current timezone setting."""
+    """Get the current timezone setting.
+
+    Returns:
+        tuple: JSON response with timezone value.
+    """
     return jsonify(_timezone_setting)
 
 
 @admin_bp.route('/timezone', methods=['PUT'])
 def update_timezone():
-    """Update timezone setting."""
+    """Update the timezone setting.
+
+    Valid values: UTC, CST, EST, PST, MST.
+
+    Returns:
+        tuple: JSON response with updated timezone, or error with 400.
+    """
     data = request.get_json() or {}
     tz = data.get('timezone')
 
@@ -205,7 +257,13 @@ def update_timezone():
 
 @admin_bp.route('/delete-all-videos', methods=['POST'])
 def delete_all_videos():
-    """Delete all videos (requires confirmation)."""
+    """Delete all videos from storage.
+
+    Requires confirmed=true in request body for safety.
+
+    Returns:
+        tuple: JSON response with deletion counts and 200, or error with 400.
+    """
     data = request.get_json() or {}
 
     if not data.get('confirmed'):
@@ -225,7 +283,13 @@ def delete_all_videos():
 
 @admin_bp.route('/delete-sensor-data', methods=['POST'])
 def delete_sensor_data():
-    """Delete sensor data (requires confirmation)."""
+    """Delete all sensor data from storage.
+
+    Requires confirmed=true in request body for safety.
+
+    Returns:
+        tuple: JSON response with deleted count and 200, or error with 400.
+    """
     data = request.get_json() or {}
 
     if not data.get('confirmed'):
@@ -243,19 +307,33 @@ def delete_sensor_data():
 
 @admin_bp.route('/scripts', methods=['GET'])
 def get_available_scripts():
-    """Get list of available control scripts."""
+    """Get the list of available remote control scripts.
+
+    Returns:
+        tuple: JSON response with scripts array containing name and description.
+    """
     return jsonify({'scripts': AVAILABLE_SCRIPTS})
 
 
 @admin_bp.route('/scripts/system-restart', methods=['POST'])
 def system_restart():
-    """Trigger system restart on selected coop."""
+    """Trigger a system restart on the selected coop Pi.
+
+    Returns:
+        tuple: JSON response with restart status.
+    """
     return jsonify({'status': 'restart_initiated'})
 
 
 @admin_bp.route('/scripts/health-check', methods=['POST'])
 def health_check_script():
-    """Run health check diagnostics."""
+    """Run health check diagnostics on the coop Pi.
+
+    Returns service status, disk usage, and CPU temperature.
+
+    Returns:
+        tuple: JSON response with diagnostic results.
+    """
     data = request.get_json() or {}
     coop_id = data.get('coop_id', 'coop1')
 
@@ -276,19 +354,31 @@ def health_check_script():
 
 @admin_bp.route('/scripts/performance-monitor', methods=['POST'])
 def performance_monitor():
-    """Run performance monitoring script."""
+    """Run performance monitoring script on the Pi.
+
+    Returns:
+        tuple: JSON response with completion status and metrics.
+    """
     return jsonify({'status': 'completed', 'metrics': {}})
 
 
 @admin_bp.route('/scripts/system-update', methods=['POST'])
 def system_update():
-    """Trigger system update."""
+    """Trigger a system update on the coop Pi.
+
+    Returns:
+        tuple: JSON response with update initiation status.
+    """
     return jsonify({'status': 'update_initiated'})
 
 
 @admin_bp.route('/scripts/service-control', methods=['POST'])
 def service_control():
-    """Control services (start/stop/restart)."""
+    """Control services on the Pi (start/stop/restart/status).
+
+    Returns:
+        tuple: JSON response with completion status and action taken.
+    """
     data = request.get_json() or {}
     action = data.get('action', 'status')
     return jsonify({'status': 'completed', 'action': action})
@@ -296,7 +386,11 @@ def service_control():
 
 @admin_bp.route('/scripts/sensor-diagnostics', methods=['POST'])
 def sensor_diagnostics():
-    """Run sensor diagnostics."""
+    """Run diagnostic checks on all connected sensors.
+
+    Returns:
+        tuple: JSON response with status for each sensor type.
+    """
     return jsonify({
         'sensors': {
             'sht41': {'status': 'ok'},
@@ -308,7 +402,13 @@ def sensor_diagnostics():
 
 @admin_bp.route('/scripts/s3-scan', methods=['POST'])
 def s3_scan():
-    """Scan S3 for corrupted videos."""
+    """Scan S3 bucket for corrupted video files.
+
+    Set dry_run=false in request body to get deletion recommendations.
+
+    Returns:
+        tuple: JSON response with corrupted_count and dry_run status.
+    """
     data = request.get_json() or {}
     dry_run = data.get('dry_run', True)
 
@@ -320,7 +420,11 @@ def s3_scan():
 
 @admin_bp.route('/scripts/s3-clean', methods=['POST'])
 def s3_clean():
-    """Clean corrupted videos from S3."""
+    """Delete corrupted video files from S3 bucket.
+
+    Returns:
+        tuple: JSON response with deleted_count.
+    """
     return jsonify({
         'deleted_count': 2
     })
@@ -332,13 +436,23 @@ def s3_clean():
 
 @admin_bp.route('/climate/status', methods=['GET'])
 def get_climate_status():
-    """Get current climate status."""
+    """Get the current climate control status.
+
+    Returns:
+        tuple: JSON response with fan_status and temperature_threshold.
+    """
     return jsonify(_climate_status)
 
 
 @admin_bp.route('/climate/fan', methods=['POST'])
 def control_fan():
-    """Control fan (on/off/auto)."""
+    """Control the coop ventilation fan.
+
+    Set action to 'on', 'off', or 'auto' in request body.
+
+    Returns:
+        tuple: JSON response with updated climate status.
+    """
     data = request.get_json() or {}
     action = data.get('action', 'auto')
 

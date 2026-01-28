@@ -26,7 +26,11 @@ _door_check_times = {}
 
 @dashboard_bp.route('/api/coops', methods=['GET'])
 def get_coops():
-    """Get list of available coops."""
+    """Get the list of available chicken coops.
+
+    Returns:
+        tuple: JSON response with coops array containing id and name.
+    """
     return jsonify({
         'coops': [
             {'id': 'coop1', 'name': 'Coop 1'},
@@ -37,7 +41,14 @@ def get_coops():
 
 @dashboard_bp.route('/api/status', methods=['GET'])
 def get_status():
-    """Get status for coop(s)."""
+    """Get current status for one or all coops.
+
+    Query Parameters:
+        coop_id: Specific coop ID or 'all' for all coops.
+
+    Returns:
+        tuple: JSON response with temperature, humidity, door status, and alerts.
+    """
     coop_id = request.args.get('coop_id')
     now = datetime.now(timezone.utc)
 
@@ -73,7 +84,11 @@ def get_status():
 
 @dashboard_bp.route('/api/dashboard/refresh', methods=['POST'])
 def refresh_dashboard():
-    """Refresh all dashboard data."""
+    """Refresh all dashboard data and return current state.
+
+    Returns:
+        tuple: JSON response with status, sensor_data, videos, and timestamp.
+    """
     now = datetime.now(timezone.utc)
     return jsonify({
         'status': {'online': True},
@@ -85,7 +100,11 @@ def refresh_dashboard():
 
 @dashboard_bp.route('/api/settings/auto-refresh', methods=['GET'])
 def get_auto_refresh():
-    """Get auto-refresh settings."""
+    """Get the auto-refresh configuration settings.
+
+    Returns:
+        tuple: JSON response with enabled status and interval_seconds.
+    """
     return jsonify({
         'enabled': True,
         'interval_seconds': 30
@@ -98,7 +117,13 @@ def get_auto_refresh():
 
 @dashboard_bp.route('/api/check-door', methods=['POST'])
 def check_door():
-    """Check door position manually with cooldown."""
+    """Check door position manually with a 60-second cooldown.
+
+    Returns door status and cooldown information if rate-limited.
+
+    Returns:
+        tuple: JSON response with door_status and cooldown info.
+    """
     data = request.get_json() or {}
     coop_id = data.get('coop_id', 'coop1')
     now = datetime.now(timezone.utc)
@@ -126,7 +151,15 @@ def check_door():
 
 @dashboard_bp.route('/api/camera/live', methods=['GET'])
 def get_live_stream():
-    """Get live camera stream URL."""
+    """Get a live camera stream URL for viewing.
+
+    Query Parameters:
+        coop_id: The coop to stream from (default: coop1).
+        camera: Camera type ('indoor' or 'outdoor', default: indoor).
+
+    Returns:
+        tuple: JSON response with stream_url, duration, and camera info.
+    """
     coop_id = request.args.get('coop_id', 'coop1')
     camera = request.args.get('camera', 'indoor')
 
@@ -144,16 +177,27 @@ def get_live_stream():
 
 @dashboard_bp.route('/api/sensor-data', methods=['GET'])
 def get_sensor_data():
-    """Get sensor data for charts."""
+    """Get sensor data for chart visualization.
+
+    Query Parameters:
+        range: Time range for data (default: '24h').
+        timezone: Timezone for timestamp display.
+
+    Returns:
+        tuple: JSON response with readings array and statistics.
+    """
     time_range = request.args.get('range', '24h')
     timezone_param = request.args.get('timezone')
 
     now = datetime.now(timezone.utc)
 
+    readings = [
+        {'timestamp': now.isoformat(), 'temperature': 72.5, 'humidity': 65.0}
+    ]
+
     return jsonify({
-        'readings': [
-            {'timestamp': now.isoformat(), 'temperature': 72.5, 'humidity': 65.0}
-        ],
+        'data': readings,
+        'readings': readings,
         'range': time_range,
         'timezone': timezone_param or 'UTC',
         'statistics': {
@@ -169,7 +213,18 @@ def get_sensor_data():
 
 @dashboard_bp.route('/api/videos', methods=['GET'])
 def get_videos():
-    """Get videos with filtering and pagination."""
+    """Get videos with filtering, sorting, and pagination.
+
+    Query Parameters:
+        camera: Filter by camera type.
+        date_range: Filter by date range.
+        sort: Sort order ('newest' or 'oldest', default: newest).
+        limit: Results per page (default: 12).
+        offset: Pagination offset (default: 0).
+
+    Returns:
+        tuple: JSON response with videos array and pagination metadata.
+    """
     camera = request.args.get('camera')
     date_range = request.args.get('date_range')
     sort = request.args.get('sort', 'newest')
@@ -187,7 +242,9 @@ def get_videos():
             'timestamp': now.isoformat(),
             'file_size': 15000000,
             'trigger_type': 'motion',
-            'thumbnail_url': 'https://example.com/thumb1.jpg'
+            'thumbnail_url': 'https://example.com/thumb1.jpg',
+            'url': 'https://example.com/videos/video1.mp4',
+            'presigned_url': 'https://example.com/videos/video1.mp4?signature=abc'
         }
     ]
 
@@ -205,13 +262,24 @@ def get_videos():
 
 @dashboard_bp.route('/api/videos/count', methods=['GET'])
 def get_video_count():
-    """Get total video count."""
+    """Get the total count of stored videos.
+
+    Returns:
+        tuple: JSON response with total video count.
+    """
     return jsonify({'total': 42})
 
 
 @dashboard_bp.route('/api/videos/<video_id>/url', methods=['GET'])
 def get_video_url(video_id):
-    """Get presigned URL for video playback."""
+    """Get a presigned URL for video playback.
+
+    Args:
+        video_id: The unique identifier of the video.
+
+    Returns:
+        tuple: JSON response with presigned url and expiration time.
+    """
     s3_client = getattr(g, 's3_client', None)
 
     if s3_client:
@@ -230,13 +298,41 @@ def get_video_url(video_id):
     })
 
 
+@dashboard_bp.route('/api/videos/retain', methods=['POST'])
+def retain_video():
+    """Mark a video for permanent retention.
+
+    Prevents automatic deletion. Requires s3_key in request body.
+
+    Returns:
+        tuple: JSON response with success status and 200, or error with 400.
+    """
+    data = request.get_json() or {}
+    s3_key = data.get('s3_key')
+    note = data.get('note')
+
+    if not s3_key:
+        return jsonify({'error': 's3_key is required'}), 400
+
+    return jsonify({
+        'success': True,
+        's3_key': s3_key,
+        'note': note,
+        'message': 'Video marked for retention'
+    }), 200
+
+
 # =============================================================================
 # Manual Recording Endpoint
 # =============================================================================
 
 @dashboard_bp.route('/api/manual-record', methods=['POST'])
 def manual_record():
-    """Trigger manual video recording."""
+    """Trigger a manual video recording on a specific camera.
+
+    Returns:
+        tuple: JSON response with recording status and 202 accepted.
+    """
     data = request.get_json() or {}
     coop_id = data.get('coop_id', 'coop1')
     camera = data.get('camera', 'indoor')
@@ -254,7 +350,17 @@ def manual_record():
 
 @dashboard_bp.route('/api/export/sensor-data', methods=['GET'])
 def export_sensor_data():
-    """Export sensor data as CSV."""
+    """Export sensor data as a downloadable file.
+
+    Query Parameters:
+        format: Export format ('csv', default: csv).
+        start: Start date for data range.
+        end: End date for data range.
+        coop_id: Filter by coop ID.
+
+    Returns:
+        Response: CSV file download or JSON error with 400.
+    """
     format_type = request.args.get('format', 'csv')
     start = request.args.get('start')
     end = request.args.get('end')

@@ -57,13 +57,20 @@ _sample_records = [
 
 @headcount_bp.route('/latest', methods=['GET'])
 def get_latest_headcount():
-    """Get most recent headcount result."""
+    """Get the most recent headcount result.
+
+    Returns:
+        tuple: JSON response with latest headcount data and 200,
+               or error with 404 if no data exists.
+    """
     if not _sample_records:
         return jsonify({'error': 'No headcount data'}), 404
 
     latest = _sample_records[0]
     return jsonify({
         'detected_count': latest['detected_count'],
+        'count_detected': latest['detected_count'],
+        'count': latest['detected_count'],
         'expected_count': latest['expected_count'],
         'timestamp': latest['timestamp'],
         'confidence': latest['confidence'],
@@ -74,7 +81,11 @@ def get_latest_headcount():
 
 @headcount_bp.route('/stats', methods=['GET'])
 def get_headcount_stats():
-    """Get overall headcount statistics."""
+    """Get overall headcount statistics including success rate and streaks.
+
+    Returns:
+        tuple: JSON response with success_rate, total_checks, and current_streak.
+    """
     total_checks = len(_sample_records)
     successful_checks = sum(1 for r in _sample_records if r['all_present'])
     success_rate = (successful_checks / total_checks * 100) if total_checks > 0 else 0
@@ -96,7 +107,14 @@ def get_headcount_stats():
 
 @headcount_bp.route('/history', methods=['GET'])
 def get_headcount_history():
-    """Get historical headcount records."""
+    """Get historical headcount records with optional limit.
+
+    Query Parameters:
+        limit: Maximum number of records to return (default: 30).
+
+    Returns:
+        tuple: JSON response with list of headcount records.
+    """
     limit = request.args.get('limit', 30, type=int)
     records = _sample_records[:limit]
     return jsonify({'records': records})
@@ -104,7 +122,15 @@ def get_headcount_history():
 
 @headcount_bp.route('/run', methods=['POST'])
 def trigger_manual_headcount():
-    """Trigger a manual headcount check."""
+    """Trigger a manual headcount check for a specific coop.
+
+    Initiates an asynchronous headcount operation. Returns 409 if
+    a headcount is already in progress.
+
+    Returns:
+        tuple: JSON response with job_id and 202 on success,
+               or 409 if headcount already running.
+    """
     global _headcount_running
 
     data = request.get_json(silent=True) or {}
@@ -132,7 +158,14 @@ def trigger_manual_headcount():
 
 @headcount_bp.route('/chart', methods=['GET'])
 def get_chart_data():
-    """Get data for headcount trend chart."""
+    """Get formatted data for headcount trend chart visualization.
+
+    Query Parameters:
+        days: Number of days of data to return (default: 30).
+
+    Returns:
+        tuple: JSON response with data_points array for charting.
+    """
     days = request.args.get('days', 30, type=int)
 
     data_points = [
@@ -151,7 +184,13 @@ def get_chart_data():
 
 @headcount_bp.route('/warnings', methods=['GET'])
 def get_headcount_warnings():
-    """Get headcount warning messages."""
+    """Get active warning messages related to headcount.
+
+    Returns warnings if no chickens are registered or no headcount data exists.
+
+    Returns:
+        tuple: JSON response with warnings list and chicken_count.
+    """
     warnings = []
     chicken_count = 6  # Would come from database
 
