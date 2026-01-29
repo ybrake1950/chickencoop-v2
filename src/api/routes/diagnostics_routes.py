@@ -9,6 +9,8 @@ Provides endpoints for troubleshooting authentication and AWS permission issues:
 - Troubleshooting guides
 """
 
+import os
+
 from flask import Blueprint, jsonify
 
 diagnostics_bp = Blueprint('diagnostics', __name__, url_prefix='/api/diagnostics')
@@ -83,7 +85,7 @@ def run_all_diagnostics():
         {
             'name': 'access_key_id_present',
             'status': 'success',
-            'value': _truncate_credential('AKIAIOSFODNN7EXAMPLE')
+            'value': _truncate_credential(os.environ.get('AWS_ACCESS_KEY_ID', ''))
         },
         {
             'name': 'secret_access_key_present',

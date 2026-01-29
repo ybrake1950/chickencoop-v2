@@ -26,6 +26,9 @@ logs/
 *.db
 .env
 config/certs/
+*.pem
+*.key
+credentials
  
 # OS
 .DS_Store

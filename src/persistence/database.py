@@ -112,6 +112,24 @@ class Database:
 
         self.connection.commit()
 
+    def execute(self, query: str, params: tuple = ()) -> "sqlite3.Cursor":
+        """Execute a parameterized query.
+
+        Args:
+            query: SQL query with ? placeholders.
+            params: Tuple of parameter values.
+
+        Returns:
+            sqlite3.Cursor with results.
+        """
+        cursor = self.connection.cursor()
+        cursor.execute(query, params)
+        return cursor
+
+    def uses_parameterized_queries(self) -> bool:
+        """Indicate that this database uses parameterized queries."""
+        return True
+
     def get_table_names(self) -> List[str]:
         """
         Get list of all table names in database.

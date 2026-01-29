@@ -21,107 +21,209 @@ HOW TESTS ARE EXECUTED:
     pytest tdd/phase13_command_queue/queue/test_command_queue.py -v
 """
 import pytest
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock
 
+from src.command_queue.queue import CommandQueue, Command, CommandStatus
+
+
+# =============================================================================
+# Fixtures
+# =============================================================================
+
+@pytest.fixture
+def queue(tmp_path):
+    """Provide a command queue."""
+    return CommandQueue(storage_path=tmp_path / "queue.db")
+
+@pytest.fixture
+def sample_command():
+    """Provide a sample command."""
+    return Command(action="record", params={"duration": 60, "camera": "indoor"}, user_id="user-123")
+
+
+# =============================================================================
+# TestQueueOperations
+# =============================================================================
 
 class TestQueueOperations:
     """Test basic queue operations."""
 
-    def test_enqueue_command(self):
+    def test_enqueue_command(self, queue, sample_command):
         """Commands can be enqueued."""
-        pass
+        queue.enqueue(sample_command)
+        assert queue.size() == 1
 
-    def test_dequeue_command(self):
+    def test_dequeue_command(self, queue, sample_command):
         """Commands can be dequeued."""
-        pass
+        queue.enqueue(sample_command)
+        cmd = queue.dequeue()
+        assert cmd is not None
+        assert cmd.action == "record"
 
-    def test_fifo_ordering(self):
+    def test_fifo_ordering(self, queue):
         """Commands dequeued in FIFO order."""
-        pass
+        queue.enqueue(Command(action="record", params={}, user_id="u1"))
+        queue.enqueue(Command(action="headcount", params={}, user_id="u1"))
+        queue.enqueue(Command(action="restart", params={}, user_id="u1"))
 
-    def test_queue_persistence(self):
+        assert queue.dequeue().action == "record"
+        assert queue.dequeue().action == "headcount"
+        assert queue.dequeue().action == "restart"
+
+    def test_queue_persistence(self, queue, sample_command, tmp_path):
         """Queue persists across restarts."""
-        pass
+        queue.enqueue(sample_command)
+        queue.save()
 
-    def test_empty_queue_returns_none(self):
+        queue2 = CommandQueue(storage_path=tmp_path / "queue.db")
+        queue2.load()
+        assert queue2.size() >= 1
+
+    def test_empty_queue_returns_none(self, queue):
         """Empty queue returns None on dequeue."""
-        pass
+        cmd = queue.dequeue()
+        assert cmd is None
 
+
+# =============================================================================
+# TestCommandDeduplication
+# =============================================================================
 
 class TestCommandDeduplication:
     """Test command deduplication."""
 
-    def test_duplicate_command_rejected(self):
+    def test_duplicate_command_rejected(self, queue):
         """Duplicate commands rejected."""
-        pass
+        cmd1 = Command(action="record", params={}, user_id="u1", idempotency_key="key-1")
+        cmd2 = Command(action="record", params={}, user_id="u1", idempotency_key="key-1")
+        queue.enqueue(cmd1)
+        result = queue.enqueue(cmd2)
+        assert result.accepted is False or queue.size() == 1
 
-    def test_dedup_window_configurable(self):
+    def test_dedup_window_configurable(self, queue):
         """Deduplication window is configurable."""
-        pass
+        queue.set_dedup_window(seconds=0)
+        cmd1 = Command(action="record", params={}, user_id="u1", idempotency_key="key-1")
+        cmd2 = Command(action="record", params={}, user_id="u1", idempotency_key="key-1")
+        queue.enqueue(cmd1)
+        result = queue.enqueue(cmd2)
+        assert result.accepted is True or queue.size() == 2
 
-    def test_different_params_not_duplicate(self):
+    def test_different_params_not_duplicate(self, queue):
         """Same command with different params not duplicate."""
-        pass
+        cmd1 = Command(action="record", params={"duration": 30}, user_id="u1", idempotency_key="key-1")
+        cmd2 = Command(action="record", params={"duration": 60}, user_id="u1", idempotency_key="key-2")
+        queue.enqueue(cmd1)
+        queue.enqueue(cmd2)
+        assert queue.size() == 2
 
-    def test_dedup_by_idempotency_key(self):
+    def test_dedup_by_idempotency_key(self, queue):
         """Deduplication uses idempotency key."""
-        pass
+        cmd1 = Command(action="record", params={}, user_id="u1", idempotency_key="same-key")
+        cmd2 = Command(action="headcount", params={}, user_id="u1", idempotency_key="same-key")
+        queue.enqueue(cmd1)
+        result = queue.enqueue(cmd2)
+        assert result.accepted is False or queue.size() == 1
 
+
+# =============================================================================
+# TestCommandExpiration
+# =============================================================================
 
 class TestCommandExpiration:
     """Test command expiration."""
 
-    def test_expired_command_not_executed(self):
+    def test_expired_command_not_executed(self, queue):
         """Expired commands not executed."""
-        pass
+        cmd = Command(action="record", params={}, user_id="u1", ttl_seconds=0)
+        queue.enqueue(cmd)
+        queue.remove_expired()
+        result = queue.dequeue()
+        assert result is None
 
-    def test_expiration_configurable(self):
+    def test_expiration_configurable(self, queue):
         """Command expiration configurable."""
-        pass
+        cmd = Command(action="record", params={}, user_id="u1", ttl_seconds=3600)
+        assert cmd.ttl_seconds == 3600
 
-    def test_expired_commands_cleaned(self):
+    def test_expired_commands_cleaned(self, queue):
         """Expired commands cleaned from queue."""
-        pass
+        for i in range(5):
+            queue.enqueue(Command(action="record", params={}, user_id="u1", ttl_seconds=0))
+        queue.remove_expired()
+        assert queue.size() == 0
 
+
+# =============================================================================
+# TestCommandTypes
+# =============================================================================
 
 class TestCommandTypes:
     """Test different command types."""
 
-    def test_manual_record_command(self):
+    def test_manual_record_command(self, queue):
         """Manual record command queued."""
-        pass
+        cmd = Command(action="record", params={"duration": 60}, user_id="u1")
+        queue.enqueue(cmd)
+        assert queue.dequeue().action == "record"
 
-    def test_check_door_command(self):
+    def test_check_door_command(self, queue):
         """Check door command queued."""
-        pass
+        cmd = Command(action="check_door", params={}, user_id="u1")
+        queue.enqueue(cmd)
+        assert queue.dequeue().action == "check_door"
 
-    def test_headcount_command(self):
+    def test_headcount_command(self, queue):
         """Manual headcount command queued."""
-        pass
+        cmd = Command(action="headcount", params={}, user_id="u1")
+        queue.enqueue(cmd)
+        assert queue.dequeue().action == "headcount"
 
-    def test_config_update_command(self):
+    def test_config_update_command(self, queue):
         """Config update command queued."""
-        pass
+        cmd = Command(action="config_update", params={"key": "threshold", "value": 95}, user_id="u1")
+        queue.enqueue(cmd)
+        dequeued = queue.dequeue()
+        assert dequeued.action == "config_update"
+        assert dequeued.params["key"] == "threshold"
 
-    def test_restart_service_command(self):
+    def test_restart_service_command(self, queue):
         """Restart service command queued."""
-        pass
+        cmd = Command(action="restart_service", params={"service": "monitor"}, user_id="u1")
+        queue.enqueue(cmd)
+        dequeued = queue.dequeue()
+        assert dequeued.action == "restart_service"
+        assert dequeued.params["service"] == "monitor"
 
+
+# =============================================================================
+# TestQueueSecurity
+# =============================================================================
 
 class TestQueueSecurity:
     """Test queue security."""
 
-    def test_commands_authenticated(self):
+    def test_commands_authenticated(self, queue):
         """Commands require authentication."""
-        pass
+        cmd = Command(action="record", params={}, user_id=None)
+        result = queue.enqueue(cmd, require_auth=True)
+        assert result.accepted is False
 
-    def test_command_authorization(self):
+    def test_command_authorization(self, queue):
         """Commands require authorization."""
-        pass
+        cmd = Command(action="restart_service", params={}, user_id="u1", user_role="viewer")
+        result = queue.enqueue(cmd, require_role="admin")
+        assert result.accepted is False
 
-    def test_command_payload_validated(self):
+    def test_command_payload_validated(self, queue):
         """Command payload validated."""
-        pass
+        cmd = Command(action="", params=None, user_id="u1")
+        result = queue.enqueue(cmd)
+        assert result.accepted is False
 
-    def test_dangerous_commands_require_confirm(self):
+    def test_dangerous_commands_require_confirm(self, queue):
         """Dangerous commands require confirmation."""
-        pass
+        cmd = Command(action="restart_service", params={"service": "monitor"}, user_id="u1")
+        result = queue.enqueue(cmd, require_confirmation=True, confirmed=False)
+        assert result.accepted is False
