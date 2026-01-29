@@ -40,7 +40,7 @@ class TestGracefulStartup:
         """Monitoring service starts automatically on boot."""
         # Systemd should have chickencoop-monitor enabled
         # Verify service is configured for auto-start
-        service_path = Path(__file__).parents[4] / 'config' / 'systemd' / 'chickencoop-monitor.service'
+        service_path = Path(__file__).parents[3] / 'config' / 'systemd' / 'chickencoop-monitor.service'
         if service_path.exists():
             content = service_path.read_text()
             assert 'WantedBy=multi-user.target' in content
@@ -49,7 +49,7 @@ class TestGracefulStartup:
 
     def test_startup_waits_for_network(self):
         """Service waits for network before starting."""
-        service_path = Path(__file__).parents[4] / 'config' / 'systemd' / 'chickencoop-monitor.service'
+        service_path = Path(__file__).parents[3] / 'config' / 'systemd' / 'chickencoop-monitor.service'
         if service_path.exists():
             content = service_path.read_text()
             assert 'network-online.target' in content
@@ -60,7 +60,7 @@ class TestGracefulStartup:
         """Startup has delay for hardware initialization."""
         # Camera and sensors need time to initialize
         # Service should have RestartSec or ExecStartPre delay
-        service_path = Path(__file__).parents[4] / 'config' / 'systemd' / 'chickencoop-monitor.service'
+        service_path = Path(__file__).parents[3] / 'config' / 'systemd' / 'chickencoop-monitor.service'
         if service_path.exists():
             content = service_path.read_text()
             has_delay = 'RestartSec' in content or 'ExecStartPre' in content
@@ -150,8 +150,8 @@ class TestFilesystemResilience:
     def test_config_backup_exists(self):
         """Configuration has backup copy."""
         # If config corrupted, can restore from backup
-        config_path = Path(__file__).parents[4] / 'config' / 'config.json'
-        backup_path = Path(__file__).parents[4] / 'config' / 'config.json.bak'
+        config_path = Path(__file__).parents[3] / 'config' / 'config.json'
+        backup_path = Path(__file__).parents[3] / 'config' / 'config.json.bak'
         # Backup may or may not exist depending on implementation
         pass  # Implementation test
 
