@@ -1,90 +1,28 @@
 """Data synchronization manager for syncing buffered data after connectivity restoration.
 
-This module handles:
-- Buffered sensor data upload to S3/IoT
-- Pending video upload queue processing
-- Alert delivery for buffered alerts
-- Sync prioritization and ordering
-- Bandwidth-aware upload throttling
-- Conflict resolution for settings
+This module provides the DataSyncManager orchestrator which coordinates
+sensor data, video, and alert synchronization using dedicated handler classes.
 """
 
-import io
 import json
-import os
-import hashlib
-from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
-from enum import IntEnum
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-
-class SyncStatus(IntEnum):
-    """Sync status states."""
-
-    IDLE = 0
-    PENDING = 1
-    IN_PROGRESS = 2
-    PAUSED = 3
-    COMPLETED = 4
-    FAILED = 5
-
-
-class SyncPriority(IntEnum):
-    """Sync priority levels (lower value = higher priority)."""
-
-    CRITICAL = 0
-    HIGH = 1
-    NORMAL = 2
-    LOW = 3
-
-
-@dataclass
-class SyncItem:
-    """Represents an item in the sync queue."""
-
-    type: str  # 'sensor', 'video', 'alert'
-    data: Dict[str, Any]
-    priority: SyncPriority = SyncPriority.NORMAL
-    timestamp: str = ""
-    retry_count: int = 0
-
-    def __post_init__(self):
-        if not self.timestamp:
-            self.timestamp = datetime.now(timezone.utc).isoformat()
-
-
-@dataclass
-class SyncCheckpoint:
-    """Checkpoint for resumable sync operations."""
-
-    items_completed: int = 0
-    last_item_id: str = ""
-    timestamp: str = ""
-
-    def __post_init__(self):
-        if not self.timestamp:
-            self.timestamp = datetime.now(timezone.utc).isoformat()
-
-
-@dataclass
-class SyncResult:
-    """Result of a sync operation."""
-
-    success: bool = False
-    items_synced: int = 0
-    items_skipped: int = 0
-    duplicates_skipped: int = 0
-    errors: List[str] = field(default_factory=list)
-    error_message: Optional[str] = None
-    iot_published: int = 0
-    thumbnails_generated: int = 0
-    errors_logged: int = 0
-    alerts_aggregated: int = 0
-    throttled: bool = False
-    timed_out: bool = False
-    summary: str = ""
+# Re-export models for backward compatibility
+from src.resilience.sync_models import (
+    SyncCheckpoint,
+    SyncItem,
+    SyncPriority,
+    SyncResult,
+    SyncStatus,
+)
+from src.resilience.sync_handlers import (
+    AlertSyncHandler,
+    SensorSyncHandler,
+    VideoSyncHandler,
+    hash_reading,
+)
 
 
 class DataSyncManager:
@@ -117,6 +55,11 @@ class DataSyncManager:
         self.config = config
         self.data_dir = Path(data_dir)
 
+        # Handlers
+        self._sensor_handler = SensorSyncHandler(s3_client, iot_client, config)
+        self._video_handler = VideoSyncHandler(s3_client, config)
+        self._alert_handler = AlertSyncHandler(sns_client, config)
+
         # State tracking
         self._status = SyncStatus.IDLE
         self._is_syncing = False
@@ -133,6 +76,7 @@ class DataSyncManager:
         self._video_queue: List[Dict[str, Any]] = []
         self._alert_buffer: List[Dict[str, Any]] = []
         self._synced_sensor_hashes: set = set()
+        self._duplicates_skipped: int = 0
 
         # Checkpointing
         self._checkpoint: Optional[SyncCheckpoint] = None
@@ -196,16 +140,13 @@ class DataSyncManager:
         Args:
             reading: Sensor reading data.
         """
-        # Deduplicate based on content hash (check both synced and buffered)
-        reading_hash = self._hash_reading(reading)
+        reading_hash = hash_reading(reading)
         if reading_hash not in self._synced_sensor_hashes:
-            # Also check if already in buffer
-            existing_hashes = {self._hash_reading(r) for r in self._sensor_buffer}
+            existing_hashes = {hash_reading(r) for r in self._sensor_buffer}
             if reading_hash not in existing_hashes:
                 self._sensor_buffer.append(reading)
             else:
-                # Track that we skipped a duplicate
-                self._duplicates_skipped = getattr(self, '_duplicates_skipped', 0) + 1
+                self._duplicates_skipped += 1
 
     def queue_video_upload(self, video: Dict[str, Any]) -> None:
         """Queue a video for upload.
@@ -225,8 +166,7 @@ class DataSyncManager:
 
     def _hash_reading(self, reading: Dict[str, Any]) -> str:
         """Create a hash of a reading for deduplication."""
-        content = json.dumps(reading, sort_keys=True)
-        return hashlib.md5(content.encode()).hexdigest()
+        return hash_reading(reading)
 
     # -------------------------------------------------------------------------
     # Sync Trigger Methods
@@ -262,7 +202,6 @@ class DataSyncManager:
         result = SyncResult()
 
         try:
-            # Sync in priority order: alerts, sensors, videos
             alert_result = self.sync_alerts()
             sensor_result = self.sync_sensor_data()
             video_result = self.sync_videos()
@@ -284,7 +223,7 @@ class DataSyncManager:
             else:
                 self._status = SyncStatus.FAILED
                 self._retry_count += 1
-                self._sync_scheduled = True  # Schedule retry
+                self._sync_scheduled = True
 
         except Exception as e:
             result.success = False
@@ -300,7 +239,7 @@ class DataSyncManager:
         return result
 
     # -------------------------------------------------------------------------
-    # Sensor Data Sync
+    # Delegated Sync Methods
     # -------------------------------------------------------------------------
 
     def sync_sensor_data(
@@ -321,114 +260,19 @@ class DataSyncManager:
         Returns:
             SyncResult with sync outcome.
         """
-        result = SyncResult()
-
-        if not self._sensor_buffer:
-            result.success = True
-            return result
-
-        start_time = datetime.now(timezone.utc)
-        start_index = 0
-
-        if resume_from_checkpoint and self._checkpoint:
-            start_index = self._checkpoint.items_completed
-
-        # Sort by timestamp (oldest first)
-        readings_to_sync = sorted(
-            self._sensor_buffer[start_index:], key=lambda r: r.get("timestamp", "")
+        result, self._sensor_buffer, self._checkpoint = self._sensor_handler.sync(
+            sensor_buffer=self._sensor_buffer,
+            synced_hashes=self._synced_sensor_hashes,
+            checkpoint=self._checkpoint,
+            checkpointing_enabled=self._checkpointing_enabled,
+            throttle_rate=self._throttle_rate,
+            duplicates_skipped=self._duplicates_skipped,
+            publish_to_iot=publish_to_iot,
+            resume_from_checkpoint=resume_from_checkpoint,
+            limit=limit,
+            timeout_seconds=timeout_seconds,
         )
-
-        if limit:
-            readings_to_sync = readings_to_sync[:limit]
-
-        batch_size = self.config.get("batch_size", 100)
-        synced_count = 0
-        iot_published = 0
-
-        try:
-            for i in range(0, len(readings_to_sync), batch_size):
-                # Check timeout
-                if timeout_seconds:
-                    elapsed = (datetime.now(timezone.utc) - start_time).total_seconds()
-                    if elapsed > timeout_seconds:
-                        result.timed_out = True
-                        break
-
-                batch = readings_to_sync[i : i + batch_size]
-                batch_data = json.dumps({"readings": batch})
-
-                # Upload to S3
-                coop_id = self.config.get("coop_id", "unknown")
-                date_str = datetime.now(timezone.utc).strftime("%Y/%m/%d")
-                key = f"sensor-data/{coop_id}/{date_str}/batch_{i}.json"
-
-                self.s3_client.upload_fileobj(
-                    io.BytesIO(batch_data.encode()),
-                    Bucket=self.config.get("s3_bucket"),
-                    Key=key,
-                )
-
-                synced_count += len(batch)
-
-                # Publish to IoT if requested
-                if publish_to_iot:
-                    for reading in batch:
-                        try:
-                            self.iot_client.publish(
-                                topic=f"chickencoop/{coop_id}/sensors",
-                                payload=json.dumps(reading),
-                            )
-                            iot_published += 1
-                        except Exception:
-                            pass
-
-                # Checkpoint
-                if self._checkpointing_enabled:
-                    self._checkpoint = SyncCheckpoint(items_completed=synced_count)
-
-                # Mark readings as synced
-                for reading in batch:
-                    self._synced_sensor_hashes.add(self._hash_reading(reading))
-
-            # Clear synced items from buffer
-            self._sensor_buffer = self._sensor_buffer[synced_count:]
-
-            result.success = not result.timed_out
-            result.items_synced = synced_count
-            result.iot_published = iot_published
-            result.throttled = self._throttle_rate is not None
-            result.duplicates_skipped = getattr(self, '_duplicates_skipped', 0)
-
-        except Exception as e:
-            result.success = False
-            result.error_message = str(e)
-            result.errors.append(str(e))
-            result.items_synced = synced_count
-
-            # Save checkpoint on failure
-            self._checkpoint = SyncCheckpoint(items_completed=synced_count)
-
         return result
-
-    def get_sync_order(self) -> List[str]:
-        """Get the order timestamps will be synced.
-
-        Returns:
-            List of timestamps in sync order.
-        """
-        return sorted([r.get("timestamp", "") for r in self._sensor_buffer])
-
-    def get_pending_sensor_count(self) -> int:
-        """Get count of pending sensor readings.
-
-        Returns:
-            Number of pending sensor readings.
-        """
-        return len(self._sensor_buffer)
-
-    # -------------------------------------------------------------------------
-    # Video Sync
-    # -------------------------------------------------------------------------
 
     def sync_videos(
         self,
@@ -450,98 +294,15 @@ class DataSyncManager:
         Returns:
             SyncResult with sync outcome.
         """
-        result = SyncResult()
-
-        if not self._video_queue:
-            result.success = True
-            return result
-
-        synced_count = 0
-        skipped_count = 0
-        thumbnails = 0
-        errors_logged = 0
-
-        videos_to_process = self._video_queue.copy()
-
-        for video in videos_to_process:
-            video_path = Path(video.get("path", ""))
-            if not video_path.exists():
-                errors_logged += 1
-                continue
-
-            # Check if already exists
-            if skip_existing:
-                try:
-                    existing = self.s3_client.list_objects_v2(
-                        Bucket=self.config.get("s3_bucket"),
-                        Prefix=f"videos/{self.config.get('coop_id')}/{video_path.name}",
-                    )
-                    if existing.get("Contents"):
-                        skipped_count += 1
-                        self._video_queue.remove(video)
-                        continue
-                except Exception:
-                    pass
-
-            # Upload with retries
-            success = False
-            for attempt in range(max_retries):
-                try:
-                    key = f"videos/{self.config.get('coop_id')}/{video_path.name}"
-                    extra_args = {
-                        "ContentType": "video/mp4",
-                        "Metadata": {
-                            "timestamp": video.get("timestamp", ""),
-                            "camera": video.get("camera", ""),
-                            "trigger": video.get("trigger", ""),
-                        },
-                    }
-
-                    # Report progress
-                    if progress_callback:
-                        file_size = video_path.stat().st_size
-                        progress_callback(0, 0, file_size)
-
-                    self.s3_client.upload_file(
-                        str(video_path),
-                        self.config.get("s3_bucket"),
-                        key,
-                        ExtraArgs=extra_args,
-                    )
-
-                    if progress_callback:
-                        progress_callback(100, file_size, file_size)
-
-                    synced_count += 1
-                    success = True
-
-                    # Generate thumbnail if requested
-                    if generate_thumbnails:
-                        thumbnails += 1
-
-                    # Delete local file if requested (but not retained files)
-                    if delete_after_upload and not video.get("retain", False):
-                        video_path.unlink()
-
-                    self._video_queue.remove(video)
-                    break
-
-                except Exception as e:
-                    if attempt == max_retries - 1:
-                        result.errors.append(str(e))
-                        errors_logged += 1
-
-        result.success = len(result.errors) == 0
-        result.items_synced = synced_count
-        result.items_skipped = skipped_count
-        result.thumbnails_generated = thumbnails
-        result.errors_logged = errors_logged
-
+        result, self._video_queue = self._video_handler.sync(
+            video_queue=self._video_queue,
+            generate_thumbnails=generate_thumbnails,
+            progress_callback=progress_callback,
+            max_retries=max_retries,
+            delete_after_upload=delete_after_upload,
+            skip_existing=skip_existing,
+        )
         return result
-
-    # -------------------------------------------------------------------------
-    # Alert Sync
-    # -------------------------------------------------------------------------
 
     def sync_alerts(
         self,
@@ -557,155 +318,30 @@ class DataSyncManager:
         Returns:
             SyncResult with sync outcome.
         """
-        result = SyncResult()
-
-        if not self._alert_buffer:
-            result.success = True
-            return result
-
-        # Sort by priority (critical first) then timestamp (newest first)
-        alerts_to_sync = sorted(
-            self._alert_buffer,
-            key=lambda a: (
-                a.get("priority", SyncPriority.NORMAL)
-                if isinstance(a.get("priority"), int)
-                else a.get("priority", SyncPriority.NORMAL).value
-                if hasattr(a.get("priority"), "value")
-                else 2,
-                a.get("timestamp", ""),
-            ),
-            reverse=False,  # Lower priority value = higher priority
+        result = self._alert_handler.sync(
+            alert_buffer=self._alert_buffer,
+            aggregate_similar=aggregate_similar,
+            cooldown_minutes=cooldown_minutes,
         )
-
-        # Reverse timestamp within same priority (newest first)
-        alerts_to_sync = sorted(
-            alerts_to_sync,
-            key=lambda a: (
-                a.get("priority", SyncPriority.NORMAL)
-                if isinstance(a.get("priority"), int)
-                else a.get("priority", SyncPriority.NORMAL).value
-                if hasattr(a.get("priority"), "value")
-                else 2,
-                -datetime.fromisoformat(
-                    a.get("timestamp", datetime.now(timezone.utc).isoformat()).replace(
-                        "Z", "+00:00"
-                    )
-                ).timestamp(),
-            ),
-        )
-
-        synced_count = 0
-        skipped_count = 0
-        aggregated_count = 0
-        last_sent_by_type: Dict[str, datetime] = {}
-
-        # Aggregate similar alerts if requested
-        if aggregate_similar:
-            alerts_by_type: Dict[str, List[Dict[str, Any]]] = {}
-            for alert in alerts_to_sync:
-                alert_type = alert.get("type", "unknown")
-                if alert_type not in alerts_by_type:
-                    alerts_by_type[alert_type] = []
-                alerts_by_type[alert_type].append(alert)
-
-            for alert_type, type_alerts in alerts_by_type.items():
-                if len(type_alerts) > 1:
-                    # Create aggregated alert
-                    aggregated_alert = {
-                        "type": alert_type,
-                        "priority": type_alerts[0].get("priority"),
-                        "timestamp": type_alerts[-1].get("timestamp"),
-                        "message": f"{type_alerts[0].get('message', '')} ({len(type_alerts)} occurrences during outage, device was offline)",
-                        "count": len(type_alerts),
-                    }
-
-                    try:
-                        self.sns_client.publish(
-                            Message=json.dumps(aggregated_alert),
-                            TopicArn=self.config.get("sns_topic_arn"),
-                        )
-                        synced_count += 1
-                        aggregated_count += len(type_alerts) - 1
-                    except Exception as e:
-                        result.errors.append(str(e))
-                else:
-                    # Single alert
-                    alert = type_alerts[0]
-                    self._send_alert_with_delay_notice(alert, result)
-                    synced_count += 1
-
-            # Clear buffer
+        if result.success or result.items_synced > 0:
             self._alert_buffer.clear()
-
-        else:
-            for alert in alerts_to_sync:
-                alert_type = alert.get("type", "unknown")
-
-                # Check cooldown
-                if cooldown_minutes > 0:
-                    last_sent = last_sent_by_type.get(alert_type)
-                    if last_sent:
-                        alert_time = datetime.fromisoformat(
-                            alert.get(
-                                "timestamp", datetime.now(timezone.utc).isoformat()
-                            ).replace("Z", "+00:00")
-                        )
-                        if (alert_time - last_sent).total_seconds() < cooldown_minutes * 60:
-                            skipped_count += 1
-                            continue
-
-                try:
-                    self._send_alert_with_delay_notice(alert, result)
-                    synced_count += 1
-                    last_sent_by_type[alert_type] = datetime.fromisoformat(
-                        alert.get(
-                            "timestamp", datetime.now(timezone.utc).isoformat()
-                        ).replace("Z", "+00:00")
-                    )
-                except Exception as e:
-                    result.errors.append(str(e))
-
-            # Clear buffer
-            self._alert_buffer.clear()
-
-        result.success = len(result.errors) == 0
-        result.items_synced = synced_count
-        result.items_skipped = skipped_count
-        result.alerts_aggregated = aggregated_count
-
         return result
 
-    def _send_alert_with_delay_notice(
-        self, alert: Dict[str, Any], result: SyncResult
-    ) -> None:
-        """Send an alert with delay notice if it was delayed.
+    def get_sync_order(self) -> List[str]:
+        """Get the order timestamps will be synced.
 
-        Args:
-            alert: Alert data.
-            result: SyncResult to update on error.
+        Returns:
+            List of timestamps in sync order.
         """
-        alert_time = datetime.fromisoformat(
-            alert.get("timestamp", datetime.now(timezone.utc).isoformat()).replace(
-                "Z", "+00:00"
-            )
-        )
-        delay = datetime.now(timezone.utc) - alert_time
+        return sorted([r.get("timestamp", "") for r in self._sensor_buffer])
 
-        message = alert.get("message", "")
-        if delay.total_seconds() > 300:  # More than 5 minutes ago
-            hours = int(delay.total_seconds() / 3600)
-            minutes = int((delay.total_seconds() % 3600) / 60)
-            if hours > 0:
-                message = f"{message} (delayed {hours}h {minutes}m, device was offline)"
-            else:
-                message = f"{message} (delayed {minutes}m ago, device was offline)"
+    def get_pending_sensor_count(self) -> int:
+        """Get count of pending sensor readings.
 
-        alert_with_notice = {**alert, "message": message}
-
-        self.sns_client.publish(
-            Message=json.dumps(alert_with_notice),
-            TopicArn=self.config.get("sns_topic_arn"),
-        )
+        Returns:
+            Number of pending sensor readings.
+        """
+        return len(self._sensor_buffer)
 
     def get_alert_sync_order(self) -> List[Dict[str, Any]]:
         """Get alerts in sync order.
@@ -713,21 +349,7 @@ class DataSyncManager:
         Returns:
             List of alerts in priority/timestamp order.
         """
-        return sorted(
-            self._alert_buffer,
-            key=lambda a: (
-                a.get("priority", SyncPriority.NORMAL)
-                if isinstance(a.get("priority"), int)
-                else a.get("priority", SyncPriority.NORMAL).value
-                if hasattr(a.get("priority"), "value")
-                else 2,
-                -datetime.fromisoformat(
-                    a.get("timestamp", datetime.now(timezone.utc).isoformat()).replace(
-                        "Z", "+00:00"
-                    )
-                ).timestamp(),
-            ),
-        )
+        return self._alert_handler.get_sync_order(self._alert_buffer)
 
     # -------------------------------------------------------------------------
     # Prioritization
@@ -742,11 +364,8 @@ class DataSyncManager:
             List of SyncItems ordered by priority.
         """
         items = []
-
-        # Type priority: alerts=0, headcount=1, sensor=2, video=3
         TYPE_PRIORITY = {"alert": 0, "headcount": 1, "sensor": 2, "video": 3}
 
-        # Add alerts (highest priority)
         for alert in self._alert_buffer:
             items.append(
                 SyncItem(
@@ -757,7 +376,6 @@ class DataSyncManager:
                 )
             )
 
-        # Add sensor readings (medium priority)
         for reading in self._sensor_buffer:
             items.append(
                 SyncItem(
@@ -768,7 +386,6 @@ class DataSyncManager:
                 )
             )
 
-        # Add videos (lowest priority)
         for video in self._video_queue:
             items.append(
                 SyncItem(
@@ -779,7 +396,6 @@ class DataSyncManager:
                 )
             )
 
-        # Sort by type priority first, then by item priority, then timestamp
         return sorted(items, key=lambda i: (TYPE_PRIORITY.get(i.type, 99), i.priority, i.timestamp))
 
     # -------------------------------------------------------------------------
@@ -827,16 +443,12 @@ class DataSyncManager:
         off_peak = self.config.get("off_peak_hours", {"start": 2, "end": 6})
         now = datetime.now(timezone.utc)
 
-        # Find next off-peak time
         target_hour = off_peak["start"]
         if now.hour >= target_hour and now.hour < off_peak["end"]:
-            # Already in off-peak
             scheduled = now
         elif now.hour < target_hour:
-            # Later today
             scheduled = now.replace(hour=target_hour, minute=0, second=0, microsecond=0)
         else:
-            # Tomorrow
             scheduled = (now + timedelta(days=1)).replace(
                 hour=target_hour, minute=0, second=0, microsecond=0
             )
