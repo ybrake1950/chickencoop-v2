@@ -20,51 +20,144 @@ HOW TESTS ARE EXECUTED:
     pytest tdd/phase17_backup_dr/failover/test_failover.py -v
 """
 import pytest
+from datetime import datetime, timedelta, timezone
+from unittest.mock import MagicMock, patch
 
+from src.backup.failover import (
+    FailoverManager,
+    FailoverConfig,
+    HealthChecker,
+    FailoverState,
+)
+
+
+# =============================================================================
+# Fixtures
+# =============================================================================
+
+@pytest.fixture
+def failover_manager():
+    """Provide a failover manager."""
+    config = FailoverConfig(
+        health_check_interval=30,
+        failure_threshold=3,
+        primary_coop="coop-1",
+        backup_coop="coop-2",
+    )
+    return FailoverManager(config=config)
+
+
+@pytest.fixture
+def health_checker():
+    """Provide a health checker."""
+    return HealthChecker(interval_seconds=30, timeout_seconds=10)
+
+
+# =============================================================================
+# TestFailoverDetection
+# =============================================================================
 
 class TestFailoverDetection:
     """Test failover condition detection."""
 
-    def test_detect_pi_offline(self):
+    def test_detect_pi_offline(self, failover_manager):
         """Detect when Pi goes offline."""
-        pass
+        failover_manager.report_health("coop-1", healthy=False)
+        status = failover_manager.get_status("coop-1")
+        assert status.healthy is False
+        assert status.consecutive_failures >= 1
 
-    def test_detect_prolonged_offline(self):
+    def test_detect_prolonged_offline(self, failover_manager):
         """Detect prolonged offline status."""
-        pass
+        for _ in range(5):
+            failover_manager.report_health("coop-1", healthy=False)
+        status = failover_manager.get_status("coop-1")
+        assert status.consecutive_failures >= 5
+        assert status.state == FailoverState.DEGRADED
 
-    def test_health_check_threshold(self):
+    def test_health_check_threshold(self, failover_manager):
         """Health check failures trigger detection."""
-        pass
+        assert failover_manager.config.failure_threshold == 3
+        for _ in range(2):
+            failover_manager.report_health("coop-1", healthy=False)
+        status = failover_manager.get_status("coop-1")
+        assert status.state != FailoverState.FAILED
 
+        failover_manager.report_health("coop-1", healthy=False)
+        status = failover_manager.get_status("coop-1")
+        assert status.state in (FailoverState.FAILED, FailoverState.DEGRADED)
+
+
+# =============================================================================
+# TestAutomaticFailover
+# =============================================================================
 
 class TestAutomaticFailover:
     """Test automatic failover."""
 
-    def test_failover_triggered(self):
+    def test_failover_triggered(self, failover_manager):
         """Failover triggered on detection."""
-        pass
+        for _ in range(failover_manager.config.failure_threshold):
+            failover_manager.report_health("coop-1", healthy=False)
+        result = failover_manager.check_and_failover()
+        assert result.failover_triggered is True
 
-    def test_backup_coop_activated(self):
+    @patch("src.backup.failover.FailoverManager._activate_backup")
+    def test_backup_coop_activated(self, mock_activate, failover_manager):
         """Backup monitoring activated."""
-        pass
+        for _ in range(failover_manager.config.failure_threshold):
+            failover_manager.report_health("coop-1", healthy=False)
+        failover_manager.check_and_failover()
+        mock_activate.assert_called_once_with("coop-2")
 
-    def test_failover_notification(self):
+    @patch("src.backup.failover.FailoverManager._send_notification")
+    def test_failover_notification(self, mock_notify, failover_manager):
         """Failover notification sent."""
-        pass
+        for _ in range(failover_manager.config.failure_threshold):
+            failover_manager.report_health("coop-1", healthy=False)
+        failover_manager.check_and_failover()
+        mock_notify.assert_called_once()
+        call_args = mock_notify.call_args
+        assert "coop-1" in str(call_args)
 
+
+# =============================================================================
+# TestFailback
+# =============================================================================
 
 class TestFailback:
     """Test failback procedures."""
 
-    def test_detect_recovery(self):
+    def test_detect_recovery(self, failover_manager):
         """Detect when failed Pi recovers."""
-        pass
+        for _ in range(failover_manager.config.failure_threshold):
+            failover_manager.report_health("coop-1", healthy=False)
+        failover_manager.check_and_failover()
 
-    def test_automatic_failback(self):
+        failover_manager.report_health("coop-1", healthy=True)
+        status = failover_manager.get_status("coop-1")
+        assert status.healthy is True
+
+    def test_automatic_failback(self, failover_manager):
         """Automatic failback to primary."""
-        pass
+        for _ in range(failover_manager.config.failure_threshold):
+            failover_manager.report_health("coop-1", healthy=False)
+        failover_manager.check_and_failover()
 
-    def test_data_sync_on_failback(self):
+        for _ in range(3):
+            failover_manager.report_health("coop-1", healthy=True)
+        result = failover_manager.check_and_failback()
+        assert result.failback_triggered is True
+        assert result.primary_coop == "coop-1"
+
+    @patch("src.backup.failover.FailoverManager._sync_data")
+    def test_data_sync_on_failback(self, mock_sync, failover_manager):
         """Data synchronized on failback."""
-        pass
+        for _ in range(failover_manager.config.failure_threshold):
+            failover_manager.report_health("coop-1", healthy=False)
+        failover_manager.check_and_failover()
+
+        for _ in range(3):
+            failover_manager.report_health("coop-1", healthy=True)
+        failover_manager.check_and_failback()
+        mock_sync.assert_called_once()
