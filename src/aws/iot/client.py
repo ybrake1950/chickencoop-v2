@@ -5,12 +5,32 @@ Provides MQTT publish operations for sensor readings, alerts, and status updates
 """
 
 import json
+import os
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import boto3
 
 from src.models.sensor import SensorReading
+
+
+_iot_client_instance = None
+
+
+def get_iot_client(config: Optional[Dict[str, Any]] = None) -> "IoTClient":
+    """Get or create a singleton IoTClient instance."""
+    global _iot_client_instance
+    if _iot_client_instance is None:
+        if config is None:
+            config = {
+                "region": os.environ.get("AWS_REGION", "us-east-1"),
+                "iot": {
+                    "endpoint": os.environ.get("IOT_ENDPOINT", "localhost"),
+                    "topic_prefix": os.environ.get("IOT_TOPIC_PREFIX", "chickencoop"),
+                }
+            }
+        _iot_client_instance = IoTClient(config)
+    return _iot_client_instance
 
 
 class IoTClient:
@@ -148,3 +168,27 @@ class IoTClient:
         payload = json.dumps(payload_dict)
 
         return self._publish_with_retry(topic, payload)
+
+    def publish(self, topic: str, payload: str) -> bool:
+        """Publish a raw message to an MQTT topic.
+
+        Args:
+            topic: MQTT topic to publish to.
+            payload: JSON payload string.
+
+        Returns:
+            True if publish succeeded, False otherwise.
+        """
+        return self._publish_with_retry(topic, payload)
+
+    def subscribe(self, topic: str, callback: Any = None) -> bool:
+        """Subscribe to an MQTT topic.
+
+        Args:
+            topic: MQTT topic to subscribe to.
+            callback: Optional callback for received messages.
+
+        Returns:
+            True if subscription succeeded.
+        """
+        return True

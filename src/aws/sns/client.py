@@ -1,5 +1,6 @@
 """AWS SNS Client for chicken coop alert notifications."""
 
+import os
 import re
 from typing import Any, Dict, Optional
 
@@ -14,6 +15,24 @@ class SNSPublishError(Exception):
 class InvalidEmailError(Exception):
     """Raised when email format is invalid."""
     pass
+
+
+_sns_client_instance = None
+
+
+def get_sns_client(config: Optional[Dict[str, Any]] = None) -> "SNSClient":
+    """Get or create a singleton SNSClient instance."""
+    global _sns_client_instance
+    if _sns_client_instance is None:
+        if config is None:
+            config = {
+                "region": os.environ.get("AWS_REGION", "us-east-1"),
+                "sns": {
+                    "topic_arn": os.environ.get("SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:000000000000:default")
+                }
+            }
+        _sns_client_instance = SNSClient(config)
+    return _sns_client_instance
 
 
 class SNSClient:
@@ -38,6 +57,38 @@ class SNSClient:
         self.region = config["region"]
         self.topic_arn = config["sns"]["topic_arn"]
         self._client = boto3.client("sns", region_name=self.region)
+
+    def publish(self, subject: str, message: str) -> Dict[str, str]:
+        """Publish a message to the SNS topic.
+
+        Args:
+            subject: Message subject.
+            message: Message body.
+
+        Returns:
+            Dictionary containing the message_id.
+        """
+        return self.publish_alert(subject, message)
+
+    def subscribe(self, protocol: str, endpoint: str) -> Optional[str]:
+        """Subscribe an endpoint to the SNS topic.
+
+        Args:
+            protocol: Subscription protocol (e.g., 'email', 'sms').
+            endpoint: Endpoint to subscribe (e.g., email address).
+
+        Returns:
+            Subscription ARN if successful, None otherwise.
+        """
+        try:
+            response = self._client.subscribe(
+                TopicArn=self.topic_arn,
+                Protocol=protocol,
+                Endpoint=endpoint
+            )
+            return response.get("SubscriptionArn")
+        except Exception:
+            return None
 
     def publish_alert(self, subject: str, message: str) -> Dict[str, str]:
         """

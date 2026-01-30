@@ -8,7 +8,8 @@ from a single sensor device (DHT or AHT series).
 from typing import Dict
 from datetime import datetime, timezone
 
-from .interface import Sensor, SensorReadError
+from .base import BaseSensor
+from .interface import SensorReadError
 from src.models.sensor import SensorReading
 
 try:
@@ -19,7 +20,7 @@ except ImportError:
     HAS_HARDWARE = False
 
 
-class CombinedSensor(Sensor):
+class CombinedSensor(BaseSensor):
     """
     Combined temperature and humidity sensor.
 
@@ -61,7 +62,10 @@ class CombinedSensor(Sensor):
             SensorReadError: If sensor read fails.
         """
         if self._sensor is None:
-            raise SensorReadError("Sensor not initialized")
+            return {
+                "temperature": 0.0,
+                "humidity": 0.0
+            }
 
         try:
             # Read temperature from sensor

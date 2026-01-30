@@ -22,6 +22,12 @@ class SensorReading(BaseModel):
         unit: Temperature unit ('fahrenheit' or 'celsius')
     """
 
+    temperature: float
+    humidity: float
+    coop_id: str
+    timestamp: datetime
+    unit: str
+
     def __init__(
         self,
         temperature: float,
@@ -146,6 +152,11 @@ class SensorReadingBatch:
     """
 
     def __init__(self, readings: List[SensorReading]):
+        """Initialize batch with a list of sensor readings.
+
+        Args:
+            readings: List of SensorReading instances.
+        """
         self._readings = readings
 
     def __len__(self) -> int:

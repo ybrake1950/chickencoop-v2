@@ -4,7 +4,8 @@ Humidity sensor implementation.
 Provides HumiditySensor class for reading humidity data via I2C.
 """
 
-from .interface import Sensor, SensorReadError
+from .base import BaseSensor
+from .interface import SensorReadError
 
 try:
     import smbus2
@@ -14,7 +15,7 @@ except ImportError:
     HAS_HARDWARE = False
 
 
-class HumiditySensor(Sensor):
+class HumiditySensor(BaseSensor):
     """
     Humidity sensor implementation using AHT20/AHT10 sensor.
 

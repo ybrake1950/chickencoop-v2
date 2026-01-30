@@ -62,3 +62,12 @@ class AlertService:
             alert_sent = True
 
         return alert_sent
+
+    def send_alert(self, subject: str, message: str):
+        """Send an alert notification.
+
+        Args:
+            subject: Alert subject.
+            message: Alert message body.
+        """
+        return self._sns_client.publish_alert(subject, message)

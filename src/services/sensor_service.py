@@ -2,14 +2,12 @@
 Sensor service for managing the complete sensor data pipeline.
 """
 
-from typing import Any, Dict, Optional
+import logging
+from typing import Any, Dict, List, Optional
 
-from src.aws.iot.client import IoTClient
-from src.aws.s3.client import S3Client
 from src.models.sensor import SensorReading
-from src.persistence.csv_storage import CSVStorage
-from src.persistence.database import Database
-from src.persistence.repositories.sensor import SensorRepository
+
+logger = logging.getLogger(__name__)
 
 
 class SensorService:
@@ -17,27 +15,36 @@ class SensorService:
 
     def __init__(
         self,
-        database: Database,
-        csv_storage: CSVStorage,
-        s3_client: Optional[S3Client] = None,
-        iot_client: Optional[IoTClient] = None,
+        sensor_repo=None,
+        alert_service=None,
+        database=None,
+        csv_storage=None,
+        s3_client=None,
+        iot_client=None,
         coop_id: str = "default"
     ):
-        """Initialize sensor service with storage and cloud clients.
+        """Initialize sensor service with dependencies.
 
         Args:
+            sensor_repo: Repository for sensor data persistence.
+            alert_service: Service for checking and sending alerts.
             database: Database connection for local persistence.
             csv_storage: CSV storage for local file persistence.
             s3_client: S3 client for cloud backup.
             iot_client: IoT client for real-time publishing.
             coop_id: Default coop identifier.
         """
+        self.sensor_repo = sensor_repo
+        self.alert_service = alert_service
         self._database = database
         self._csv_storage = csv_storage
         self._s3_client = s3_client
         self._iot_client = iot_client
         self._coop_id = coop_id
-        self._sensor_repo = SensorRepository(database)
+
+        if self.sensor_repo is None and database is not None:
+            from src.persistence.repositories.sensor import SensorRepository
+            self.sensor_repo = SensorRepository(database)
 
     def process_reading(self, readings: Dict[str, Any]) -> Dict[str, bool]:
         """Process a sensor reading through the complete pipeline.
@@ -65,16 +72,17 @@ class SensorService:
 
         # Store to database
         try:
-            self._sensor_repo.save(reading)
+            self.sensor_repo.save(reading)
             result["stored_locally"] = True
         except Exception:
-            pass
+            logger.error("Failed to store reading locally")
 
         # Store to CSV
-        try:
-            self._csv_storage.append_reading(readings, self._coop_id)
-        except Exception:
-            pass
+        if self._csv_storage:
+            try:
+                self._csv_storage.append_reading(readings, self._coop_id)
+            except Exception:
+                logger.error("Failed to store reading to CSV")
 
         # Publish to IoT
         if self._iot_client:
@@ -82,6 +90,30 @@ class SensorService:
                 published = self._iot_client.publish_sensor_reading(reading)
                 result["published_iot"] = published
             except Exception:
-                pass
+                logger.error("Failed to publish reading to IoT")
+
+        # Check alerts
+        if self.alert_service:
+            try:
+                self.alert_service.check_and_alert(reading)
+            except Exception:
+                logger.error("Failed to check alerts")
 
         return result
+
+    def get_latest_readings(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Get the latest sensor readings.
+
+        Args:
+            limit: Maximum number of readings to return.
+
+        Returns:
+            List of sensor reading dictionaries.
+        """
+        try:
+            latest = self.sensor_repo.get_latest()
+            if latest:
+                return [{"temperature": latest.temperature, "humidity": latest.humidity}]
+        except Exception:
+            logger.error("Failed to get latest readings")
+        return []

@@ -2,9 +2,23 @@
 Database connection and schema management for SQLite.
 """
 
+import os
 import sqlite3
 from pathlib import Path
 from typing import Union, List, Dict, Any, Optional
+
+
+_database_instance = None
+
+
+def get_database(db_path: Optional[Union[str, Path]] = None) -> "Database":
+    """Get or create a singleton Database instance."""
+    global _database_instance
+    if _database_instance is None:
+        if db_path is None:
+            db_path = os.environ.get("DB_PATH", ":memory:")
+        _database_instance = Database(db_path)
+    return _database_instance
 
 
 class Database:

@@ -11,6 +11,23 @@ class S3ObjectNotFoundError(Exception):
     pass
 
 
+_s3_client_instance = None
+
+
+def get_s3_client(config: Optional[Dict[str, Any]] = None) -> "S3Client":
+    """Get or create a singleton S3Client instance."""
+    global _s3_client_instance
+    if _s3_client_instance is None:
+        if config is None:
+            import os
+            config = {
+                "region": os.environ.get("AWS_REGION", "us-east-1"),
+                "s3": {"bucket": os.environ.get("S3_BUCKET", "chickencoop-default")}
+            }
+        _s3_client_instance = S3Client(config)
+    return _s3_client_instance
+
+
 class S3Client:
     """
     Client for AWS S3 storage operations.
@@ -100,6 +117,10 @@ class S3Client:
             if error_code == "404":
                 raise S3ObjectNotFoundError(f"Object not found: {s3_key}")
             raise
+
+    def generate_presigned_url(self, s3_key: str, expires_in: int = 3600) -> str:
+        """Alias for get_presigned_url for interface compliance."""
+        return self.get_presigned_url(s3_key, expires_in)
 
     def get_presigned_url(self, s3_key: str, expires_in: int = 3600) -> str:
         """

@@ -29,6 +29,20 @@ class VideoMetadata:
         retention_note: Optional[str] = None,
         retained_at: Optional[datetime] = None
     ):
+        """Initialize video metadata.
+
+        Args:
+            filename: Original video filename.
+            s3_key: S3 object key for the video.
+            camera: Camera type ('indoor' or 'outdoor').
+            upload_date: When the video was uploaded (defaults to now UTC).
+            size_bytes: File size in bytes.
+            duration: Video duration in seconds.
+            retain_permanently: Whether video is marked for permanent retention.
+            retained_by_user_id: ID of user who marked retention.
+            retention_note: Note explaining why video is retained.
+            retained_at: When retention was marked.
+        """
         self.filename = filename
         self.s3_key = s3_key
         self.camera = camera
@@ -165,6 +179,11 @@ class VideoList:
     """Collection of VideoMetadata objects with filtering and sorting."""
 
     def __init__(self, videos: Optional[List[VideoMetadata]] = None):
+        """Initialize video list collection.
+
+        Args:
+            videos: Optional list of VideoMetadata objects.
+        """
         self._videos = videos or []
 
     def __len__(self) -> int:

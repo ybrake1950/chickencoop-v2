@@ -37,6 +37,18 @@ class Chicken:
         size_profile: Optional[Dict[str, Any]] = None,
         notes: Optional[str] = None
     ):
+        """Initialize a chicken record.
+
+        Args:
+            name: Chicken's name (must be unique).
+            breed: Breed of the chicken.
+            color: Plumage color description.
+            is_active: Whether the chicken is currently active.
+            date_registered: Registration date (defaults to now UTC).
+            color_profile: Color identification profile for headcount detection.
+            size_profile: Size identification profile for headcount detection.
+            notes: Additional notes about the chicken.
+        """
         self.name = name
         self.breed = breed
         self.color = color
@@ -98,6 +110,16 @@ class HeadcountLog:
         image_path: Optional[str] = None,
         timestamp: Optional[datetime] = None
     ):
+        """Initialize a headcount log entry.
+
+        Args:
+            count_detected: Number of chickens detected.
+            expected_count: Expected number of chickens.
+            confidence: Detection confidence score (0.0-1.0).
+            method: Detection method used (e.g., 'manual', 'cv').
+            image_path: Path to the detection image.
+            timestamp: When the count was performed (defaults to now UTC).
+        """
         self.count_detected = count_detected
         self.expected_count = expected_count
         self.confidence = confidence

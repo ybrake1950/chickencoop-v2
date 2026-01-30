@@ -11,9 +11,14 @@ from src.persistence.database import Database
 class UserRepository:
     """Repository for user database operations."""
 
-    def __init__(self, db: Database):
-        """Initialize with database connection."""
-        self._db = db
+    def __init__(self, db: Database = None, database: Database = None):
+        """Initialize with database connection.
+
+        Args:
+            db: Database instance (alternative parameter name).
+            database: Database instance.
+        """
+        self._db = db or database
 
     def _hash_password(self, password: str) -> str:
         """Hash a password using SHA-256."""
@@ -57,6 +62,59 @@ class UserRepository:
             return None
 
         return dict(row)
+
+    def find_by_id(self, user_id: int) -> Optional[Dict[str, Any]]:
+        """Find a user by ID.
+
+        Args:
+            user_id: The user ID to look up.
+
+        Returns:
+            User dictionary, or None if not found.
+        """
+        cursor = self._db.connection.cursor()
+        cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+    def find_all(self):
+        """Find all users.
+
+        Returns:
+            List of user dictionaries.
+        """
+        cursor = self._db.connection.cursor()
+        cursor.execute("SELECT * FROM users")
+        return [dict(row) for row in cursor.fetchall()]
+
+    def save(self, user_data: Dict[str, Any]) -> int:
+        """Save a user record.
+
+        If user_data contains an 'id', returns that ID. Otherwise creates a new user.
+
+        Args:
+            user_data: Dictionary with 'email' and 'password' keys.
+
+        Returns:
+            The user's ID.
+        """
+        if "id" in user_data:
+            return user_data["id"]
+        return self.create(user_data.get("email", ""), user_data.get("password", ""))
+
+    def delete(self, user_id: int) -> bool:
+        """Delete a user by ID.
+
+        Args:
+            user_id: The user ID to delete.
+
+        Returns:
+            True if a user was deleted, False if not found.
+        """
+        cursor = self._db.connection.cursor()
+        cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        self._db.connection.commit()
+        return cursor.rowcount > 0
 
     def verify_password(self, email: str, password: str) -> bool:
         """Verify a user's password.

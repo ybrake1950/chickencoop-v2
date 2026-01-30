@@ -11,9 +11,10 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any
 
 from src.models.sensor import SensorReading
+from src.persistence.base import BaseStorage
 
 
-class CSVStorage:
+class CSVStorage(BaseStorage):
     """
     CSV-based storage for sensor readings with daily file rotation.
 
@@ -276,3 +277,33 @@ class CSVStorage:
                 humidity=humidity,
                 coop_id=coop_id
             )
+
+    def save(self, data: Any) -> None:
+        """Save data to CSV storage.
+
+        Args:
+            data: SensorReading instance or dict with reading data.
+        """
+        if isinstance(data, SensorReading):
+            self.write_reading_model(data)
+        elif isinstance(data, dict):
+            self.append_reading(data, data.get("coop_id", "default"))
+
+    def load(self, identifier: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Load data from CSV storage.
+
+        Args:
+            identifier: Optional date string (YYYYMMDD) to load specific file.
+
+        Returns:
+            List of reading dictionaries.
+        """
+        if identifier:
+            target_date = datetime.strptime(identifier, self.DATE_FORMAT).date()
+            file_path = self.get_file_for_date(target_date)
+        else:
+            file_path = self.get_latest_file()
+
+        if file_path and file_path.exists():
+            return self.read_all(file_path)
+        return []

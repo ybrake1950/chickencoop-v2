@@ -3,7 +3,7 @@ Sensor repository for database operations.
 """
 
 from datetime import datetime, timezone
-from typing import Optional
+from typing import List, Optional
 
 from src.models.sensor import SensorReading
 from src.persistence.database import Database
@@ -12,9 +12,14 @@ from src.persistence.database import Database
 class SensorRepository:
     """Repository for sensor reading database operations."""
 
-    def __init__(self, db: Database):
-        """Initialize with database connection."""
-        self._db = db
+    def __init__(self, db: Database = None, database: Database = None):
+        """Initialize with database connection.
+
+        Args:
+            db: Database instance (alternative parameter name).
+            database: Database instance.
+        """
+        self._db = db or database
         self._ensure_table()
 
     def _ensure_table(self) -> None:
@@ -76,3 +81,28 @@ class SensorRepository:
             coop_id=row["coop_id"],
             timestamp=datetime.fromisoformat(row["timestamp"])
         )
+
+    def get_range(self, start: datetime, end: datetime) -> List[SensorReading]:
+        """Get sensor readings within a time range.
+
+        Args:
+            start: Start of time range (inclusive).
+            end: End of time range (inclusive).
+
+        Returns:
+            List of SensorReading instances ordered by timestamp ascending.
+        """
+        cursor = self._db.connection.cursor()
+        cursor.execute(
+            "SELECT * FROM sensor_readings WHERE timestamp BETWEEN ? AND ? ORDER BY timestamp",
+            (start.isoformat(), end.isoformat())
+        )
+        results = []
+        for row in cursor.fetchall():
+            results.append(SensorReading(
+                temperature=row["temperature"],
+                humidity=row["humidity"],
+                coop_id=row["coop_id"],
+                timestamp=datetime.fromisoformat(row["timestamp"])
+            ))
+        return results

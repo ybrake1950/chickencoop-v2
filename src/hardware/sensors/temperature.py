@@ -4,7 +4,8 @@ Temperature sensor implementation.
 Provides TemperatureSensor class for reading temperature data via I2C.
 """
 
-from .interface import Sensor, SensorReadError
+from .base import BaseSensor
+from .interface import SensorReadError
 
 try:
     import smbus2
@@ -16,7 +17,7 @@ except ImportError:
     HAS_HARDWARE = False
 
 
-class TemperatureSensor(Sensor):
+class TemperatureSensor(BaseSensor):
     """
     Temperature sensor implementation using AHT20/AHT10 sensor.
 

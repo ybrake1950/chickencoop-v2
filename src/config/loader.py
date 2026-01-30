@@ -125,3 +125,35 @@ def get_device_config_path() -> Path:
     """
     coop_id = os.environ.get("COOP_ID", "default")
     return get_config_path(f"devices/{coop_id}.json")
+
+
+class ConfigLoader:
+    """Configuration loader that caches loaded configuration."""
+
+    def __init__(self):
+        self._config: Dict[str, Any] = {}
+
+    def load(self, path: Path) -> Dict[str, Any]:
+        """Load configuration from a file."""
+        self._config = load_config(path)
+        return self._config
+
+    def get(self, key: str, default: Any = None) -> Any:
+        """Get a configuration value."""
+        return self._config.get(key, default)
+
+    @property
+    def data(self) -> Dict[str, Any]:
+        """Get the full configuration dictionary."""
+        return self._config
+
+
+_config_instance = None
+
+
+def get_config() -> ConfigLoader:
+    """Get or create a singleton ConfigLoader instance."""
+    global _config_instance
+    if _config_instance is None:
+        _config_instance = ConfigLoader()
+    return _config_instance
