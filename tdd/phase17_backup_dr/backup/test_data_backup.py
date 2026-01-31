@@ -233,3 +233,23 @@ class TestBackupEncryption:
         encrypted = encryption.encrypt(original)
         decrypted = encryption.decrypt(encrypted)
         assert decrypted == original
+
+
+# =============================================================================
+# TestEdgeCases
+# =============================================================================
+
+class TestEdgeCases:
+    """Test edge cases for full coverage."""
+
+    def test_backup_unknown_target(self, backup_manager):
+        """Backup with unknown target type returns failure."""
+        result = backup_manager.backup_videos(target_type="cloud")
+        assert result.success is False
+        assert result.target_type == "cloud"
+
+    def test_config_diff_invalid_version(self, backup_manager):
+        """Config diff with nonexistent version returns None."""
+        backup_manager.export_config()
+        result = backup_manager.config_diff("v1", "v999")
+        assert result is None

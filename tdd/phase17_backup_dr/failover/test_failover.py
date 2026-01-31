@@ -161,3 +161,34 @@ class TestFailback:
             failover_manager.report_health("coop-1", healthy=True)
         failover_manager.check_and_failback()
         mock_sync.assert_called_once()
+
+
+# =============================================================================
+# TestEdgeCases
+# =============================================================================
+
+class TestEdgeCases:
+    """Test edge cases for full coverage."""
+
+    def test_health_checker_init(self):
+        """HealthChecker initializes with correct parameters."""
+        checker = HealthChecker(interval_seconds=60, timeout_seconds=5)
+        assert checker.interval_seconds == 60
+        assert checker.timeout_seconds == 5
+
+    def test_healthy_report_sets_healthy_state(self, failover_manager):
+        """Healthy report on non-degraded coop sets HEALTHY state."""
+        failover_manager.report_health("coop-1", healthy=True)
+        status = failover_manager.get_status("coop-1")
+        assert status.state == FailoverState.HEALTHY
+
+    def test_no_failover_when_healthy(self, failover_manager):
+        """No failover triggered when primary is healthy."""
+        failover_manager.report_health("coop-1", healthy=True)
+        result = failover_manager.check_and_failover()
+        assert result.failover_triggered is False
+
+    def test_no_failback_without_active_failover(self, failover_manager):
+        """No failback triggered when failover is not active."""
+        result = failover_manager.check_and_failback()
+        assert result.failback_triggered is False
