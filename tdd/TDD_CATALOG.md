@@ -27,7 +27,17 @@ This document provides a comprehensive catalog of all TDD test scripts, describi
 16. [Phase 16: Multi-Camera Intelligence](#phase-16-multi-camera-intelligence)
 17. [Phase 17: Backup & Disaster Recovery](#phase-17-backup--disaster-recovery)
 18. [Phase 18: Performance & Observability](#phase-18-performance--observability)
-19. [Functionality Coverage Matrix](#functionality-coverage-matrix)
+19. [Phase 19: Production Readiness](#phase-19-production-readiness)
+20. [Phase 20: Test Suite Completeness](#phase-20-test-suite-completeness)
+21. [Phase 21: Configuration & Environment](#phase-21-configuration--environment)
+22. [Phase 22: Infrastructure Provisioning](#phase-22-infrastructure-provisioning)
+23. [Phase 23: Deployment Pipeline](#phase-23-deployment-pipeline)
+24. [Phase 24: Security Production Hardening](#phase-24-security-production-hardening)
+25. [Phase 25: Monitoring Production Readiness](#phase-25-monitoring-production-readiness)
+26. [Phase 26: Device Setup](#phase-26-device-setup)
+27. [Phase 27: Pre-Launch Verification](#phase-27-pre-launch-verification)
+28. [Phase 28: Documentation](#phase-28-documentation)
+29. [Functionality Coverage Matrix](#functionality-coverage-matrix)
 
 ---
 
@@ -2292,6 +2302,815 @@ pytest tdd/phase18_observability/performance/test_performance_monitoring.py -v
 | `test_slow_operation_detected` | Anomaly detection |
 | `test_suggestion_for_slow_upload` | Optimization |
 | `test_storage_projection` | Capacity planning |
+
+---
+
+## Phase 19: Production Readiness
+
+Phase 19 validates that critical blockers preventing the application from starting are resolved. These are Priority 1 items — without them, `python -m src.main` fails immediately.
+
+### 19.1 Production Dependencies (`test_requirements.py`)
+
+**Functionality Being Tested:**
+- requirements.txt exists with all runtime dependencies
+- All versions are pinned (==) for reproducibility
+- Every third-party import in src/ is covered
+- No duplicate package declarations
+
+**Why This Matters:**
+Missing or unpinned dependencies cause deployment failures on Raspberry Pis. Every import in src/ must map to a declared dependency.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase19_production_readiness/dependencies/test_requirements.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_requirements_txt_exists` | Production deps must be declared |
+| `test_all_versions_pinned` | Reproducible installs |
+| `test_flask_declared` | API layer dependency |
+| `test_boto3_declared` | AWS integration dependency |
+| `test_all_src_imports_covered` | No missing deps at runtime |
+
+---
+
+### 19.2 Application Entry Point (`test_application_entry.py`)
+
+**Functionality Being Tested:**
+- src/main.py exists (systemd calls `python -m src.main`)
+- Flask application factory (create_app) is defined
+- Health check endpoint (/health) responds
+- All route blueprints registered
+- Graceful shutdown handler (SIGTERM)
+- Logging configured on startup
+
+**Why This Matters:**
+The systemd service unit calls `python -m src.main`. Without this file, the monitoring daemon never starts on the Raspberry Pi.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase19_production_readiness/entrypoint/test_application_entry.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_main_py_exists` | Entry point file must exist |
+| `test_main_py_has_create_app_factory` | Flask app factory pattern |
+| `test_health_endpoint_registered` | Health check for monitoring |
+| `test_blueprints_registered` | All routes wired up |
+| `test_main_py_registers_signal_handler` | Clean systemd shutdown |
+
+---
+
+### 19.3 Package Structure (`test_package_structure.py`)
+
+**Functionality Being Tested:**
+- All src/ subdirectories have __init__.py
+- pyproject.toml exists with metadata
+- Version, Python requirement, dependencies declared
+- Entry point configured
+
+**Why This Matters:**
+Missing __init__.py files prevent Python from recognizing directories as packages, causing ImportError at runtime.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase19_production_readiness/packaging/test_package_structure.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_all_subdirs_have_init` | No missing __init__.py |
+| `test_hardware_init_exists` | Hardware package importable |
+| `test_pyproject_toml_exists` | Packaging metadata |
+| `test_pyproject_has_python_requires` | Python >= 3.11 |
+| `test_pyproject_has_dependencies` | Dependencies declared |
+
+---
+
+## Phase 20: Test Suite Completeness
+
+Phase 20 validates that the entire test suite can be collected and executed — Priority 2 items addressing the 16 failures and 10 collection errors.
+
+### 20.1 Test Collection (`test_test_collection.py`)
+
+**Functionality Being Tested:**
+- All test files collectable (zero collection errors)
+- Required runtime dependencies (flask, numpy, cv2, psutil) importable
+- pytest markers properly declared
+- conftest.py fixtures available
+
+**Why This Matters:**
+10 test files currently fail to collect due to missing dependencies. A test that cannot be collected provides zero coverage confidence.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase20_test_completeness/collection/test_test_collection.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_no_collection_errors` | All files collectable |
+| `test_flask_importable` | Phase 5/6 tests can run |
+| `test_numpy_importable` | Phase 2/16 tests can run |
+| `test_cv2_importable` | Motion/counting tests can run |
+| `test_psutil_importable` | Metrics tests can run |
+
+---
+
+### 20.2 Coverage Gates (`test_coverage_gates.py`)
+
+**Functionality Being Tested:**
+- Overall coverage exceeds 80% (per PHASE1_QUICKSTART.md)
+- All 18 original phases have passing tests
+- No test files have zero passing tests
+
+**Why This Matters:**
+Per PHASE1_QUICKSTART.md, success criteria include ">80% coverage." Coverage gates prevent untested code from reaching production.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase20_test_completeness/coverage/test_coverage_gates.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_overall_coverage_above_80_percent` | Meet QUICKSTART criteria |
+| `test_phase_has_passing_tests` | Per-phase validation (parametrized) |
+| `test_zero_pass_files` | No broken test files |
+
+---
+
+## Phase 21: Configuration & Environment
+
+Phase 21 validates configuration files and environment setup — Priority 3 items for proper runtime configuration.
+
+### 21.1 Environment Template (`test_env_template.py`)
+
+**Functionality Being Tested:**
+- .env.example exists with documented variables
+- All required variables listed (COOP_ID, SECRET_KEY, etc.)
+- Sensitive values use placeholder markers
+- .env is in .gitignore
+
+**Why This Matters:**
+Without a documented template, operators deploying to new Raspberry Pis won't know which variables to configure.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase21_configuration/environment/test_env_template.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_env_example_exists` | Template for operators |
+| `test_coop_id_declared` | Device identity variable |
+| `test_secret_key_declared` | Flask session security |
+| `test_secret_key_uses_placeholder` | No real secrets in template |
+| `test_env_in_gitignore` | Prevent secret commits |
+
+---
+
+### 21.2 Systemd Production Config (`test_systemd_production.py`)
+
+**Functionality Being Tested:**
+- WorkingDirectory uses correct path (chickencoop-v2)
+- COOP_ID environment variable configured
+- EnvironmentFile loads .env secrets
+- Logging directives (StandardOutput/StandardError)
+- ExecStartPre for cleanup
+- Restart policy and timing
+
+**Why This Matters:**
+The systemd service is the only mechanism keeping the monitoring daemon running. Wrong paths or missing env vars cause silent failures.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase21_configuration/service_config/test_systemd_production.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_working_directory_is_v2` | Correct project path |
+| `test_coop_id_environment_set` | Device identity |
+| `test_environment_file_directive` | Load .env secrets |
+| `test_stdout_logging_configured` | Log capture |
+| `test_exec_start_pre_exists` | Startup cleanup |
+
+---
+
+### 21.3 Application Config (`test_config_production.py`)
+
+**Functionality Being Tested:**
+- AWS config has real values (not placeholders)
+- IoT endpoint, SNS ARN, S3 bucket are not template stubs
+- Config supports environment variable overrides
+- Sensor read interval and recording duration are reasonable
+
+**Why This Matters:**
+Placeholder values cause silent runtime failures — S3 uploads fail, IoT messages drop, SNS alerts never arrive.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase21_configuration/app_config/test_config_production.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_iot_endpoint_not_placeholder` | Real IoT endpoint |
+| `test_sns_topic_arn_not_placeholder` | Real SNS ARN |
+| `test_s3_bucket_not_generic` | Real S3 bucket |
+| `test_sensor_read_interval_reasonable` | Sensible defaults |
+| `test_aws_config_supports_env_override` | Production flexibility |
+
+---
+
+## Phase 22: Infrastructure Provisioning
+
+Phase 22 validates that AWS infrastructure is defined as code — Priority 4 items for reproducible environments.
+
+### 22.1 AWS Resource Provisioning (`test_aws_resource_provisioning.py`)
+
+**Functionality Being Tested:**
+- Infrastructure-as-code directory exists (terraform/cloudformation/cdk)
+- S3 bucket defined with lifecycle rules and versioning
+- SNS topic defined for alerts
+- IoT Core things and policies defined
+- DynamoDB table for command queue
+- IAM roles for Pi devices
+
+**Why This Matters:**
+Manually provisioned AWS resources are unreproducible and undocumented. IaC ensures consistent environments and disaster recovery.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase22_infrastructure/aws_resources/test_aws_resource_provisioning.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_iac_directory_exists` | IaC directory present |
+| `test_s3_bucket_resource_defined` | Video/CSV storage |
+| `test_s3_lifecycle_rules_defined` | 120-day auto-expiry |
+| `test_sns_topic_defined` | Alert notifications |
+| `test_iot_thing_defined` | Device registration |
+| `test_dynamodb_table_defined` | Command queue |
+
+---
+
+### 22.2 IaC Validation (`test_iac_validation.py`)
+
+**Functionality Being Tested:**
+- No hardcoded AWS access keys in IaC files
+- No hardcoded account IDs
+- Encryption at rest for storage resources
+- S3 public access blocked
+
+**Why This Matters:**
+IaC files committed with secrets or misconfigurations are a top cloud security risk.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase22_infrastructure/iac_validation/test_iac_validation.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_no_aws_access_keys` | No leaked credentials |
+| `test_no_hardcoded_account_ids` | Use variables |
+| `test_s3_encryption_configured` | Data protection |
+| `test_s3_public_access_block` | No public buckets |
+
+---
+
+### 22.3 Lambda & Frontend Packaging (`test_lambda_packaging.py`)
+
+**Functionality Being Tested:**
+- Lambda handler file exists with handler function
+- Frontend webapp directory with package.json
+- Build and test scripts defined
+
+**Why This Matters:**
+The CI/CD pipeline deploys Flask as Lambda and React to Amplify/S3. Without proper packaging, deployments fail silently.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase22_infrastructure/lambda_packaging/test_lambda_packaging.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_lambda_handler_exists` | Serverless deployment |
+| `test_lambda_handler_has_handler_function` | Correct signature |
+| `test_webapp_directory_exists` | Frontend build setup |
+| `test_webapp_has_build_script` | CI build capability |
+
+---
+
+## Phase 23: Deployment Pipeline
+
+Phase 23 validates the deployment pipeline is production-ready — Priority 5 items for reliable deployments.
+
+### 23.1 Deploy Script Production (`test_deploy_production.py`)
+
+**Functionality Being Tested:**
+- deploy.sh uses correct remote path (chickencoop-v2)
+- Runs pip install on each Pi
+- Activates virtual environment
+- Has error handling and rollback
+- Verifies service after deployment
+
+**Why This Matters:**
+deploy.sh is the primary mechanism for pushing code to Raspberry Pis. Broken scripts mean stale code on devices.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase23_deployment_pipeline/deploy_script/test_deploy_production.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_uses_correct_remote_path` | No stale path references |
+| `test_installs_requirements` | Deps installed on Pi |
+| `test_activates_virtual_environment` | Proper Python env |
+| `test_has_rollback_mechanism` | Failed deploy recovery |
+| `test_verifies_service_after_deploy` | Post-deploy validation |
+
+---
+
+### 23.2 CI Workflow Production (`test_ci_workflow_production.py`)
+
+**Functionality Being Tested:**
+- Workflow installs both production and dev dependencies
+- Coverage thresholds enforced
+- No placeholder URLs (example.com)
+- Security scanning enabled
+
+**Why This Matters:**
+A CI pipeline with incomplete deps or placeholder URLs gives false confidence. Tests pass in CI but the app fails in production.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase23_deployment_pipeline/ci_workflow/test_ci_workflow_production.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_installs_production_requirements` | Full dependency install |
+| `test_has_coverage_threshold` | Coverage gates |
+| `test_no_example_urls` | No placeholder URLs |
+| `test_has_security_scan` | Security scanning |
+
+---
+
+### 23.3 Install Script Production (`test_install_script_production.py`)
+
+**Functionality Being Tested:**
+- install-services.sh uses correct paths
+- Creates virtual environment
+- Installs pip dependencies
+- Handles IoT certificates
+- Sets correct file permissions
+
+**Why This Matters:**
+install-services.sh is run once per Pi during initial setup. Incorrect steps mean the device never starts monitoring.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase23_deployment_pipeline/install_script/test_install_script_production.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_uses_correct_project_path` | No stale paths |
+| `test_creates_virtual_environment` | Isolated Python env |
+| `test_installs_pip_dependencies` | Requirements installed |
+| `test_references_certificates` | IoT cert setup |
+| `test_sets_certificate_permissions` | Secure permissions |
+
+---
+
+## Phase 24: Security Production Hardening
+
+Phase 24 validates security measures for production deployment — Priority 6 items beyond Phase 10's functional tests.
+
+### 24.1 Production Secrets (`test_production_secrets.py`)
+
+**Functionality Being Tested:**
+- No AWS keys in source code
+- No private keys in source files
+- No hardcoded passwords in production code
+- .env, certs, and db files gitignored
+- No actual .env file committed
+
+**Why This Matters:**
+Exposed secrets are the #1 cause of cloud security breaches. These tests scan the entire codebase for leaked credentials.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase24_security_production/secrets/test_production_secrets.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_no_aws_access_keys_in_python` | No leaked AWS keys |
+| `test_no_private_keys_in_source` | No leaked private keys |
+| `test_env_file_gitignored` | .env protected |
+| `test_certs_dir_gitignored` | IoT certs protected |
+| `test_no_env_file_committed` | No secrets in repo |
+
+---
+
+### 24.2 Network Security (`test_network_security.py`)
+
+**Functionality Being Tested:**
+- CORS not set to wildcard origin
+- Security headers configured (X-Frame-Options, etc.)
+- Rate limiting implemented
+
+**Why This Matters:**
+Raspberry Pis on local networks can be targets. Proper CORS, security headers, and rate limiting harden the web interface.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase24_security_production/network/test_network_security.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_no_wildcard_cors_in_source` | Restrictive CORS |
+| `test_x_frame_options_configured` | Clickjacking prevention |
+| `test_content_type_options_configured` | MIME sniffing prevention |
+| `test_rate_limiting_exists` | Brute-force protection |
+
+---
+
+### 24.3 OWASP Compliance (`test_owasp_compliance.py`)
+
+**Functionality Being Tested:**
+- A01: Auth decorators on all API routes
+- A02: Secure password hashing (bcrypt/argon2/pbkdf2)
+- A03: No f-string SQL injection
+- A05: Debug mode not hardcoded
+- Audit logging with timestamps and user identity
+
+**Why This Matters:**
+OWASP Top 10 represents the most critical web application security risks. Systematic checking ensures nothing is overlooked.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase24_security_production/compliance/test_owasp_compliance.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_api_routes_have_auth_decorators` | Access control |
+| `test_uses_secure_password_hashing` | Crypto strength |
+| `test_no_string_format_sql` | SQL injection prevention |
+| `test_debug_mode_not_hardcoded_true` | Secure config |
+| `test_audit_logging_module_exists` | Compliance logging |
+
+---
+
+## Phase 25: Monitoring Production Readiness
+
+Phase 25 validates monitoring and alerting are production-ready — Priority 7 items for operational visibility.
+
+### 25.1 CloudWatch Setup (`test_cloudwatch_setup.py`)
+
+**Functionality Being Tested:**
+- Metrics published to CloudWatch (not just local)
+- Custom namespace defined (ChickenCoop)
+- CloudWatch alarms configured for critical thresholds
+- Centralized logging support
+
+**Why This Matters:**
+Without CloudWatch, operators have no visibility into Raspberry Pi health from a central console. Failed devices go unnoticed.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase25_monitoring_production/cloudwatch/test_cloudwatch_setup.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_cloudwatch_publish_implemented` | Metrics reach AWS |
+| `test_custom_namespace_defined` | ChickenCoop namespace |
+| `test_alarm_definitions_exist` | Proactive alerting |
+
+---
+
+### 25.2 Alerting Pipeline Production (`test_alerting_pipeline_production.py`)
+
+**Functionality Being Tested:**
+- SNS topic ARN not placeholder
+- Alert aggregation prevents storms
+- Quiet hours supported in routing
+- Webhook URLs configurable (not hardcoded)
+
+**Why This Matters:**
+Alerts are the safety net for chicken welfare. A broken pipeline means emergencies go unnoticed. Alert fatigue is equally dangerous.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase25_monitoring_production/alerting_pipeline/test_alerting_pipeline_production.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_sns_topic_not_hardcoded` | Real SNS ARN |
+| `test_debounce_logic_exists` | Prevent alert storms |
+| `test_quiet_hours_supported` | Time-based routing |
+| `test_webhook_urls_configurable` | No hardcoded URLs |
+
+---
+
+## Phase 26: Device Setup
+
+Phase 26 validates Raspberry Pi device setup — Priority 8 items for OS preparation and application installation.
+
+### 26.1 OS Preparation (`test_os_preparation.py`)
+
+**Functionality Being Tested:**
+- Python 3.11+ requirement documented
+- System dependencies (opencv, libatlas) listed
+- I2C and camera interface enablement documented
+- Hostname configuration for coop identity
+
+**Why This Matters:**
+Raspberry Pis ship with a bare OS. Without clear preparation steps, operators miss critical dependencies and hardware interfaces.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase26_device_setup/os_preparation/test_os_preparation.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_python_version_is_311_plus` | Version requirement |
+| `test_opencv_dependency_documented` | System dep documented |
+| `test_i2c_interface_documented` | Sensor interface setup |
+| `test_camera_interface_documented` | Camera interface setup |
+| `test_hostname_setup_documented` | Coop identity |
+
+---
+
+### 26.2 Application Installation (`test_app_installation.py`)
+
+**Functionality Being Tested:**
+- Required directory structure exists
+- Shell scripts are executable
+- requirements.txt has valid syntax
+- .env.example available for customization
+- IoT certificate directory documented
+
+**Why This Matters:**
+Installation on a fresh Pi must be reliable. Each step depends on the previous one — a failed pip install means the service won't start.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase26_device_setup/app_installation/test_app_installation.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_required_directory_exists` | Structure intact (parametrized) |
+| `test_scripts_are_executable` | Scripts can run |
+| `test_requirements_txt_has_valid_syntax` | Installable deps |
+| `test_env_example_exists` | Config template ready |
+| `test_certs_dir_in_gitignore` | Certs not committed |
+
+---
+
+## Phase 27: Pre-Launch Verification
+
+Phase 27 validates the system is ready for production — Priority 9 meta-tests that gate the final deployment.
+
+### 27.1 Suite Health (`test_suite_health.py`)
+
+**Functionality Being Tested:**
+- Full test suite: 0 failures, 0 collection errors
+- Type checking (mypy) passes
+- Linting (pylint --errors-only) passes
+- Code formatting (black --check) passes
+
+**Why This Matters:**
+Per PHASE1_QUICKSTART.md: "All tests pass," ">80% coverage," "No linting errors." This phase gates deployment on those criteria.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase27_prelaunch/suite_health/test_suite_health.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_full_suite_zero_failures` | All tests green |
+| `test_zero_collection_errors` | All files collectable |
+| `test_mypy_passes` | Type safety |
+| `test_pylint_no_errors` | No linting errors |
+| `test_black_formatting` | Consistent formatting |
+
+---
+
+### 27.2 Integration Verification (`test_integration_verification.py`)
+
+**Functionality Being Tested:**
+- Sensor → CSV → S3 pipeline covered by integration tests
+- Alert pipeline covered
+- Login/dashboard user flow covered
+- Offline → sync resilience covered
+
+**Why This Matters:**
+Unit tests verify isolation. Integration tests verify the assembled system. Missing integration coverage means individual pieces work but the system fails.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase27_prelaunch/integration_verification/test_integration_verification.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_sensor_to_csv_integration` | Data pipeline tested |
+| `test_sensor_to_s3_integration` | Cloud upload tested |
+| `test_threshold_to_alert_integration` | Alert pipeline tested |
+| `test_login_flow_tested` | User flow tested |
+| `test_offline_sync_coverage` | Resilience tested |
+
+---
+
+### 27.3 Disaster Recovery Validation (`test_dr_validation.py`)
+
+**Functionality Being Tested:**
+- Power recovery tests exist and pass (Phase 9)
+- Backup/restore tests exist and pass (Phase 17)
+- Failover tests exist and pass (Phase 17)
+
+**Why This Matters:**
+Disaster recovery is only valuable if it works. These meta-tests verify the DR suite is comprehensive and passing.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase27_prelaunch/disaster_recovery_validation/test_dr_validation.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_power_recovery_tests_pass` | Phase 9 validated |
+| `test_backup_tests_pass` | Phase 17 backup validated |
+| `test_failover_tests_pass` | Phase 17 failover validated |
+
+---
+
+## Phase 28: Documentation
+
+Phase 28 validates that operational and architectural documentation exists — Priority 10 items for knowledge transfer and maintainability.
+
+### 28.1 Operations Documentation (`test_operations_docs.py`)
+
+**Functionality Being Tested:**
+- Deployment runbook exists
+- Troubleshooting guide exists
+- Monitoring guide exists
+- Backup/restore procedures documented
+
+**Why This Matters:**
+Without operations docs, only the original developer can deploy and troubleshoot. Documentation enables knowledge transfer and reduces MTTR.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase28_documentation/operations_docs/test_operations_docs.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_deployment_docs_exist` | Deployment runbook |
+| `test_deployment_covers_prerequisites` | Prerequisites listed |
+| `test_troubleshooting_docs_exist` | Issue resolution guide |
+| `test_monitoring_docs_exist` | What to watch |
+| `test_backup_docs_exist` | Recovery procedures |
+
+---
+
+### 28.2 Architecture Documentation (`test_architecture_docs.py`)
+
+**Functionality Being Tested:**
+- System architecture overview documented
+- AWS services documented
+- Data flows documented (sensor, video)
+- TDD catalog covers all 28 phases
+
+**Why This Matters:**
+Architecture docs enable new developers to understand the system without reading every source file. They capture design decisions and component interactions.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase28_documentation/architecture_docs/test_architecture_docs.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_architecture_overview_exists` | System topology |
+| `test_aws_services_documented` | All AWS services listed |
+| `test_sensor_data_flow_documented` | Sensor lifecycle |
+| `test_tdd_catalog_covers_all_phases` | All 28 phases in catalog |
+
+---
+
+### Production Readiness Coverage Matrix
+
+| Priority | Phase | Test File(s) | Tests | Status |
+|----------|-------|--------------|-------|--------|
+| **P1: Critical Blockers** ||||
+| Dependencies | 19 | test_requirements.py | 12 | ✅ |
+| Entry point | 19 | test_application_entry.py | 10 | ✅ |
+| Package structure | 19 | test_package_structure.py | 11 | ✅ |
+| **P2: Fix Failing Tests** ||||
+| Test collection | 20 | test_test_collection.py | 8 | ✅ |
+| Coverage gates | 20 | test_coverage_gates.py | 20 | ✅ |
+| **P3: Configuration** ||||
+| Environment template | 21 | test_env_template.py | 8 | ✅ |
+| Systemd production | 21 | test_systemd_production.py | 10 | ✅ |
+| App config | 21 | test_config_production.py | 8 | ✅ |
+| **P4: Infrastructure** ||||
+| AWS resources | 22 | test_aws_resource_provisioning.py | 9 | ✅ |
+| IaC validation | 22 | test_iac_validation.py | 5 | ✅ |
+| Lambda/frontend | 22 | test_lambda_packaging.py | 5 | ✅ |
+| **P5: Deployment** ||||
+| Deploy script | 23 | test_deploy_production.py | 8 | ✅ |
+| CI workflow | 23 | test_ci_workflow_production.py | 7 | ✅ |
+| Install script | 23 | test_install_script_production.py | 7 | ✅ |
+| **P6: Security** ||||
+| Secrets | 24 | test_production_secrets.py | 8 | ✅ |
+| Network | 24 | test_network_security.py | 5 | ✅ |
+| OWASP | 24 | test_owasp_compliance.py | 8 | ✅ |
+| **P7: Monitoring** ||||
+| CloudWatch | 25 | test_cloudwatch_setup.py | 4 | ✅ |
+| Alerting pipeline | 25 | test_alerting_pipeline_production.py | 7 | ✅ |
+| **P8: Device Setup** ||||
+| OS preparation | 26 | test_os_preparation.py | 7 | ✅ |
+| App installation | 26 | test_app_installation.py | 12 | ✅ |
+| **P9: Pre-Launch** ||||
+| Suite health | 27 | test_suite_health.py | 5 | ✅ |
+| Integration verify | 27 | test_integration_verification.py | 7 | ✅ |
+| DR validation | 27 | test_dr_validation.py | 6 | ✅ |
+| **P10: Documentation** ||||
+| Operations docs | 28 | test_operations_docs.py | 5 | ✅ |
+| Architecture docs | 28 | test_architecture_docs.py | 6 | ✅ |
+
+**Total new tests: 217 across 26 test files in 10 new phases**
 
 ---
 
