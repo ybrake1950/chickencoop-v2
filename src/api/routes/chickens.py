@@ -180,4 +180,5 @@ def register_routes(app):
     Args:
         app: The Flask application instance to register the chickens blueprint with.
     """
-    app.register_blueprint(chickens_bp)
+    if 'chickens' not in app.blueprints:
+        app.register_blueprint(chickens_bp)

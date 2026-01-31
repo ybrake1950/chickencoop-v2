@@ -7,8 +7,10 @@ Provides the BaseSensor ABC that all sensor implementations must extend.
 from abc import ABC, abstractmethod
 from typing import Any
 
+from .interface import Sensor
 
-class BaseSensor(ABC):
+
+class BaseSensor(Sensor, ABC):
     """
     Abstract base class for all sensor implementations.
 

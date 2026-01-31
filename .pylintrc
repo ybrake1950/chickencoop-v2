@@ -1,0 +1,13 @@
+[MASTER]
+# Allow loading of cv2 C extension members
+extension-pkg-allow-list=cv2
+
+[TYPECHECK]
+# cv2 generates Python bindings from C++ at build time; pylint cannot introspect them.
+generated-members=cv2.*
+
+[MESSAGES CONTROL]
+# Disable import-error for hardware-specific packages only available on Raspberry Pi
+# (board, busio, adafruit_ahtx0, picamera2, smbus2)
+# These are guarded by try/except in the source code.
+disable=import-error

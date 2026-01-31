@@ -3,6 +3,7 @@ Database connection and schema management for SQLite.
 """
 
 import os
+import re
 import sqlite3
 from pathlib import Path
 from typing import Union, List, Dict, Any, Optional
@@ -165,6 +166,8 @@ class Database:
         Returns:
             List of column info dicts with keys: cid, name, type, notnull, default, pk.
         """
+        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table_name):
+            raise ValueError(f"Invalid table name: {table_name}")
         cursor = self.connection.cursor()
         cursor.execute(f"PRAGMA table_info({table_name})")
         columns = []

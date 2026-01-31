@@ -152,18 +152,69 @@ _SQL_PATTERNS = [
 
 
 class SQLInjectionDetector:
-    """Detect SQL injection attempts."""
-    pass
+    """Detect SQL injection attempts in user-supplied strings."""
+
+    def is_suspicious(self, value: str) -> bool:
+        """Return True if the value contains SQL injection patterns."""
+        for pattern in _SQL_PATTERNS:
+            if pattern.search(value):
+                return True
+        return False
+
+    def check(self, value: str) -> ValidationResult:
+        """Validate a string against SQL injection patterns."""
+        if self.is_suspicious(value):
+            return ValidationResult(valid=False, error="Possible SQL injection detected")
+        return ValidationResult(valid=True)
+
+
+_PATH_TRAVERSAL_PATTERNS = [
+    re.compile(r'\.\.[\\/]'),
+    re.compile(r'%2[eE]%2[eE]'),
+    re.compile(r'\x00'),
+    re.compile(r'%00'),
+]
 
 
 class PathTraversalDetector:
-    """Detect path traversal attempts."""
-    pass
+    """Detect path traversal attempts in file paths."""
+
+    def is_suspicious(self, path: str) -> bool:
+        """Return True if the path contains traversal patterns."""
+        for pattern in _PATH_TRAVERSAL_PATTERNS:
+            if pattern.search(path):
+                return True
+        return False
+
+    def check(self, path: str) -> ValidationResult:
+        """Validate a path against traversal patterns."""
+        if self.is_suspicious(path):
+            return ValidationResult(valid=False, error="Possible path traversal detected")
+        return ValidationResult(valid=True)
+
+
+_COMMAND_INJECTION_PATTERNS = [
+    re.compile(r'[;|&`$<>]'),
+    re.compile(r'\$\('),
+    re.compile(r'`.*`'),
+]
 
 
 class CommandInjectionDetector:
-    """Detect command injection attempts."""
-    pass
+    """Detect command injection attempts in user-supplied strings."""
+
+    def is_suspicious(self, value: str) -> bool:
+        """Return True if the value contains command injection patterns."""
+        for pattern in _COMMAND_INJECTION_PATTERNS:
+            if pattern.search(value):
+                return True
+        return False
+
+    def check(self, value: str) -> ValidationResult:
+        """Validate a string against command injection patterns."""
+        if self.is_suspicious(value):
+            return ValidationResult(valid=False, error="Possible command injection detected")
+        return ValidationResult(valid=True)
 
 
 _VALID_IOT_ACTIONS = {"record", "headcount", "restart_service"}
