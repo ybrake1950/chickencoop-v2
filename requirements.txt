@@ -1,0 +1,29 @@
+# Core runtime dependencies for chickencoop-v2
+# Pin to versions verified during development
+
+# Web framework
+flask==3.1.2
+
+# AWS SDK (botocore installed automatically with boto3)
+boto3==1.42.35
+
+# HTTP client
+requests==2.32.5
+
+# Numerical computing
+numpy==2.4.1
+
+# Computer vision (headless variant for Raspberry Pi; no GUI deps)
+opencv-python-headless==4.13.0.90
+
+# System metrics collection
+psutil==7.2.2
+
+# AWS low-level SDK (used for exception types)
+botocore==1.42.35
+
+# Raspberry Pi hardware dependencies
+smbus2==0.6.0
+adafruit-circuitpython-ahtx0==1.0.28
+adafruit-blinka==8.69.0
+picamera2==0.3.33

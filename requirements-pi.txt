@@ -1,0 +1,14 @@
+# Raspberry Pi hardware-specific dependencies
+# Install these IN ADDITION TO requirements.txt when running on Pi hardware
+
+-r requirements.txt
+
+# Pi camera
+picamera2>=0.3.17
+
+# I2C communication
+smbus2>=0.4.3
+
+# Adafruit temperature/humidity sensor (AHT20)
+adafruit-circuitpython-ahtx0>=1.0.0
+adafruit-blinka>=8.40.0

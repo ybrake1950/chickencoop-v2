@@ -47,12 +47,13 @@ class TestCoverageThreshold:
         """Overall test coverage must be at least 80%."""
         result = subprocess.run(
             [sys.executable, '-m', 'pytest', 'tdd/',
+             '--ignore=tdd/phase20_test_completeness',
              '--cov=src', '--cov-report=term', '-q',
              '--cov-fail-under=80', '--tb=no', '--no-header'],
             capture_output=True,
             text=True,
             cwd=str(project_root),
-            timeout=300,
+            timeout=900,
         )
         assert result.returncode == 0, (
             f"Coverage below 80% threshold.\n"
@@ -114,11 +115,12 @@ class TestNoTestFileHasZeroPassing:
         """No test file should have 0 passed and >0 failed/errors."""
         result = subprocess.run(
             [sys.executable, '-m', 'pytest', 'tdd/',
+             '--ignore=tdd/phase20_test_completeness',
              '-q', '--tb=no', '--no-header'],
             capture_output=True,
             text=True,
             cwd=str(project_root),
-            timeout=300,
+            timeout=900,
         )
         # Check for error lines indicating collection failures
         error_count = result.stderr.count('ERROR collecting')

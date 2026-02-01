@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "chickencoop-v2"
+version = "2.0.0"
+requires-python = ">= 3.11"
+dependencies = [
+    "flask>=3.1",
+    "boto3>=1.42",
+    "requests>=2.32",
+    "numpy>=2.4",
+    "opencv-python-headless>=4.13",
+    "psutil>=7.2",
+]
+
+[project.scripts]
+chickencoop = "src.main:main"
