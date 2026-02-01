@@ -1,6 +1,9 @@
 #!/bin/bash
-# Auto-update script for Raspberry Pi chicken coop systems
-# Handles system packages, Python dependencies, and kernel updates
+# Auto-update script for Raspberry Pi chicken coop systems.
+# Handles system packages, Python dependencies, and kernel updates.
+# Schedules a reboot at 03:00 if a kernel update is detected.
+#
+# Usage: Run as root via cron (e.g., weekly).
 
 set -e
 

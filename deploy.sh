@@ -42,6 +42,10 @@ for COOP in $COOPS; do
         # Restore stashed changes
         git stash pop || true
 
+        # Activate virtual environment and install requirements
+        source venv/bin/activate
+        pip install -r requirements.txt
+
         # Restart the service
         sudo systemctl restart chickencoop-monitor
 

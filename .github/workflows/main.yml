@@ -61,8 +61,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+          pip install -r requirements-dev.txt
       - name: Run pytest
-        run: pytest tdd/ -v --cov
+        run: pytest tdd/ -v --cov --cov-fail-under=80
 
   ci-configs:
     runs-on: ubuntu-latest
@@ -120,4 +121,4 @@ jobs:
           aws lambda update-function-code --function-name chickencoop-api --zip-file fileb://function.zip
       - name: Run health check
         run: |
-          curl -f https://api.chickencoop.example.com/health || exit 1
+          curl -f ${{ secrets.HEALTH_CHECK_URL }}/health || exit 1
