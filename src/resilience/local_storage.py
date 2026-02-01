@@ -4,7 +4,6 @@ This module provides storage monitoring, cleanup, and management functionality
 to ensure the device continues operating even with limited SD card space.
 """
 
-import os
 import shutil
 from datetime import datetime, timedelta
 from enum import Enum
@@ -14,6 +13,7 @@ from typing import Any, Dict, List, Optional
 
 class StorageCategory(Enum):
     """Categories for storage allocation and tracking."""
+
     VIDEOS = "videos"
     SENSOR_DATA = "sensor_data"
     LOGS = "logs"
@@ -73,19 +73,19 @@ class LocalStorageManager:
     def __init__(
         self,
         storage_path: Path,
-        warning_threshold: float = None,
-        critical_threshold: float = None,
-        cleanup_threshold: float = None,
-        cleanup_target: float = None,
-        check_interval_seconds: int = None,
-        reserved_system_bytes: int = None,
-        allocations: Dict[StorageCategory, float] = None,
-        retention_days: Dict[StorageCategory, int] = None,
-        max_pending_files: int = None,
-        max_pending_age_days: int = None,
-        tmpfs_path: str = None,
-        tmpfs_size_mb: int = None,
-        usb_overflow_path: Path = None,
+        warning_threshold: Optional[float] = None,
+        critical_threshold: Optional[float] = None,
+        cleanup_threshold: Optional[float] = None,
+        cleanup_target: Optional[float] = None,
+        check_interval_seconds: Optional[int] = None,
+        reserved_system_bytes: Optional[int] = None,
+        allocations: Optional[Dict[StorageCategory, float]] = None,
+        retention_days: Optional[Dict[StorageCategory, int]] = None,
+        max_pending_files: Optional[int] = None,
+        max_pending_age_days: Optional[int] = None,
+        tmpfs_path: Optional[str] = None,
+        tmpfs_size_mb: Optional[int] = None,
+        usb_overflow_path: Optional[Path] = None,
     ):
         """Initialize the local storage manager.
 
@@ -110,10 +110,16 @@ class LocalStorageManager:
         self.critical_threshold = critical_threshold or self.DEFAULT_CRITICAL_THRESHOLD
         self.cleanup_threshold = cleanup_threshold or self.DEFAULT_CLEANUP_THRESHOLD
         self.cleanup_target = cleanup_target or self.DEFAULT_CLEANUP_TARGET
-        self.check_interval_seconds = check_interval_seconds or self.DEFAULT_CHECK_INTERVAL
-        self.reserved_system_bytes = reserved_system_bytes or self.DEFAULT_RESERVED_BYTES
+        self.check_interval_seconds = (
+            check_interval_seconds or self.DEFAULT_CHECK_INTERVAL
+        )
+        self.reserved_system_bytes = (
+            reserved_system_bytes or self.DEFAULT_RESERVED_BYTES
+        )
         self.max_pending_files = max_pending_files or self.DEFAULT_MAX_PENDING_FILES
-        self.max_pending_age_days = max_pending_age_days or self.DEFAULT_MAX_PENDING_AGE_DAYS
+        self.max_pending_age_days = (
+            max_pending_age_days or self.DEFAULT_MAX_PENDING_AGE_DAYS
+        )
         self.tmpfs_path = Path(tmpfs_path) if tmpfs_path else Path("/tmp/chickencoop")
         self.tmpfs_size_mb = tmpfs_size_mb or self.DEFAULT_TMPFS_SIZE_MB
 
@@ -146,10 +152,10 @@ class LocalStorageManager:
         """
         stat = shutil.disk_usage(self.storage_path)
         return {
-            'total_bytes': stat.total,
-            'used_bytes': stat.used,
-            'free_bytes': stat.free,
-            'percent_used': stat.used / stat.total if stat.total > 0 else 0.0
+            "total_bytes": stat.total,
+            "used_bytes": stat.used,
+            "free_bytes": stat.free,
+            "percent_used": stat.used / stat.total if stat.total > 0 else 0.0,
         }
 
     def check_storage_status(self) -> Dict[str, Any]:
@@ -159,13 +165,13 @@ class LocalStorageManager:
             Dictionary with warning and critical flags.
         """
         usage = self.get_storage_usage()
-        percent_used = usage['percent_used']
+        percent_used = usage["percent_used"]
 
         return {
-            'warning': percent_used >= self.warning_threshold,
-            'critical': percent_used >= self.critical_threshold,
-            'percent_used': percent_used,
-            'free_bytes': usage['free_bytes']
+            "warning": percent_used >= self.warning_threshold,
+            "critical": percent_used >= self.critical_threshold,
+            "percent_used": percent_used,
+            "free_bytes": usage["free_bytes"],
         }
 
     def get_usage_by_category(self) -> Dict[StorageCategory, int]:
@@ -179,7 +185,7 @@ class LocalStorageManager:
             category_path = self.storage_path / dir_name
             if category_path.exists():
                 total_size = sum(
-                    f.stat().st_size for f in category_path.rglob('*') if f.is_file()
+                    f.stat().st_size for f in category_path.rglob("*") if f.is_file()
                 )
                 usage[category] = total_size
             else:
@@ -209,10 +215,7 @@ class LocalStorageManager:
         return current_usage >= self.cleanup_threshold
 
     def cleanup_old_files(
-        self,
-        category: StorageCategory,
-        max_age_days: int,
-        protected_files: List[str]
+        self, category: StorageCategory, max_age_days: int, protected_files: List[str]
     ) -> List[str]:
         """Clean up old files in a category.
 
@@ -224,7 +227,7 @@ class LocalStorageManager:
         Returns:
             List of deleted file paths.
         """
-        deleted = []
+        deleted: List[str] = []
         category_path = self.storage_path / CATEGORY_DIRS.get(category, "")
 
         if not category_path.exists():
@@ -233,7 +236,7 @@ class LocalStorageManager:
         cutoff_time = datetime.now() - timedelta(days=max_age_days)
         protected_set = set(protected_files)
 
-        for file_path in category_path.rglob('*'):
+        for file_path in category_path.rglob("*"):
             if not file_path.is_file():
                 continue
 
@@ -249,12 +252,14 @@ class LocalStorageManager:
                 try:
                     file_path.unlink()
                     deleted.append(str(file_path))
-                    self._cleanup_log.append({
-                        'timestamp': datetime.now().isoformat(),
-                        'file': str(file_path),
-                        'category': category.value,
-                        'reason': f'exceeded max age of {max_age_days} days'
-                    })
+                    self._cleanup_log.append(
+                        {
+                            "timestamp": datetime.now().isoformat(),
+                            "file": str(file_path),
+                            "category": category.value,
+                            "reason": f"exceeded max age of {max_age_days} days",
+                        }
+                    )
                 except OSError as e:
                     self.record_io_error(f"Failed to delete {file_path}: {e}")
 
@@ -282,9 +287,7 @@ class LocalStorageManager:
         pending = [f for f in files if f in pending_set]
 
         # Sort pending by priority (low priority first for deletion)
-        pending.sort(
-            key=lambda f: 0 if self.get_pending_priority(f) == "normal" else 1
-        )
+        pending.sort(key=lambda f: 0 if self.get_pending_priority(f) == "normal" else 1)
 
         return synced + pending
 
@@ -298,8 +301,7 @@ class LocalStorageManager:
             Retention period in days.
         """
         base_retention = self._retention_days.get(
-            category,
-            self.DEFAULT_RETENTION_DAYS.get(category, 7)
+            category, self.DEFAULT_RETENTION_DAYS.get(category, 7)
         )
 
         if self._offline_mode:
@@ -323,8 +325,8 @@ class LocalStorageManager:
             priority: Priority level ("normal" or "high").
         """
         self._pending_files[file_path] = {
-            'added': datetime.now().isoformat(),
-            'priority': priority
+            "added": datetime.now().isoformat(),
+            "priority": priority,
         }
 
     def get_pending_files(self) -> List[str]:
@@ -345,8 +347,8 @@ class LocalStorageManager:
             Priority level or "normal" if not found.
         """
         if file_path in self._pending_files:
-            return self._pending_files[file_path].get('priority', 'normal')
-        return 'normal'
+            return self._pending_files[file_path].get("priority", "normal")
+        return "normal"
 
     def is_protected(self, file_path: str) -> bool:
         """Check if a file is protected from deletion.
@@ -365,10 +367,9 @@ class LocalStorageManager:
         Args:
             message: Error message.
         """
-        self._io_errors.append({
-            'timestamp': datetime.now().isoformat(),
-            'message': message
-        })
+        self._io_errors.append(
+            {"timestamp": datetime.now().isoformat(), "message": message}
+        )
 
     def get_io_errors(self) -> List[Dict[str, Any]]:
         """Get recorded I/O errors.
@@ -400,12 +401,14 @@ class LocalStorageManager:
         """
         usage = self.get_storage_usage()
         return {
-            'storage_health': 'healthy' if not self._io_errors else 'degraded',
-            'io_errors': self._io_errors.copy(),
-            'filesystem_status': 'readonly' if self.is_filesystem_readonly() else 'writable',
-            'usage': usage,
-            'pending_files_count': len(self._pending_files),
-            'cleanup_log_count': len(self._cleanup_log)
+            "storage_health": "healthy" if not self._io_errors else "degraded",
+            "io_errors": self._io_errors.copy(),
+            "filesystem_status": (
+                "readonly" if self.is_filesystem_readonly() else "writable"
+            ),
+            "usage": usage,
+            "pending_files_count": len(self._pending_files),
+            "cleanup_log_count": len(self._cleanup_log),
         }
 
     def get_smart_data(self) -> Optional[Dict[str, Any]]:
@@ -457,11 +460,13 @@ class LocalStorageManager:
                     if mount.is_dir():
                         try:
                             stat = shutil.disk_usage(mount)
-                            usb_drives.append({
-                                'path': str(mount),
-                                'total_bytes': stat.total,
-                                'free_bytes': stat.free
-                            })
+                            usb_drives.append(
+                                {
+                                    "path": str(mount),
+                                    "total_bytes": stat.total,
+                                    "free_bytes": stat.free,
+                                }
+                            )
                         except (OSError, IOError):
                             pass
 
@@ -473,12 +478,14 @@ class LocalStorageManager:
         Args:
             usb_path: Path of removed USB drive.
         """
-        self._storage_events.append({
-            'timestamp': datetime.now().isoformat(),
-            'event': 'usb_removal',
-            'path': usb_path,
-            'message': f'USB drive removed: {usb_path}'
-        })
+        self._storage_events.append(
+            {
+                "timestamp": datetime.now().isoformat(),
+                "event": "usb_removal",
+                "path": usb_path,
+                "message": f"USB drive removed: {usb_path}",
+            }
+        )
 
     def get_storage_events(self) -> List[Dict[str, Any]]:
         """Get storage-related events.
@@ -500,11 +507,11 @@ class LocalStorageManager:
         try:
             stat = shutil.disk_usage(self.usb_overflow_path)
             return {
-                'path': str(self.usb_overflow_path),
-                'total_bytes': stat.total,
-                'free_bytes': stat.free,
-                'percent_used': stat.used / stat.total if stat.total > 0 else 0.0,
-                'status': 'healthy'
+                "path": str(self.usb_overflow_path),
+                "total_bytes": stat.total,
+                "free_bytes": stat.free,
+                "percent_used": stat.used / stat.total if stat.total > 0 else 0.0,
+                "status": "healthy",
             }
         except (OSError, IOError):
-            return {'status': 'error', 'path': str(self.usb_overflow_path)}
+            return {"status": "error", "path": str(self.usb_overflow_path)}

@@ -117,7 +117,7 @@ class SensorSyncHandler:
                                 payload=json.dumps(reading),
                             )
                             iot_published += 1
-                        except Exception:
+                        except Exception:  # pylint: disable=broad-exception-caught
                             pass
 
                 # Checkpoint
@@ -137,7 +137,7 @@ class SensorSyncHandler:
             result.throttled = throttle_rate is not None
             result.duplicates_skipped = duplicates_skipped
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             remaining_buffer = sensor_buffer
             result.success = False
             result.error_message = str(e)
@@ -216,7 +216,7 @@ class VideoSyncHandler:
                         skipped_count += 1
                         remaining.remove(video)
                         continue
-                except Exception:
+                except Exception:  # pylint: disable=broad-exception-caught
                     pass
 
             # Upload with retries
@@ -260,7 +260,7 @@ class VideoSyncHandler:
                     remaining.remove(video)
                     break
 
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-exception-caught
                     if attempt == max_retries - 1:
                         result.errors.append(str(e))
                         errors_logged += 1
@@ -333,7 +333,9 @@ class AlertSyncHandler:
 
         return result
 
-    def get_sync_order(self, alert_buffer: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def get_sync_order(
+        self, alert_buffer: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """Get alerts in sync order.
 
         Args:
@@ -381,7 +383,7 @@ class AlertSyncHandler:
                     )
                     synced_count += 1
                     aggregated_count += len(type_alerts) - 1
-                except Exception as e:
+                except Exception as e:  # pylint: disable=broad-exception-caught
                     result.errors.append(str(e))
             else:
                 self._send_with_delay_notice(type_alerts[0], result)
@@ -428,13 +430,13 @@ class AlertSyncHandler:
                         "timestamp", datetime.now(timezone.utc).isoformat()
                     ).replace("Z", "+00:00")
                 )
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 result.errors.append(str(e))
 
         return synced_count, skipped_count
 
     def _send_with_delay_notice(
-        self, alert: Dict[str, Any], result: SyncResult
+        self, alert: Dict[str, Any], _result: SyncResult
     ) -> None:
         """Send an alert with delay notice if it was delayed.
 

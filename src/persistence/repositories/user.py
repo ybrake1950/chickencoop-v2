@@ -11,7 +11,9 @@ from src.persistence.database import Database
 class UserRepository:
     """Repository for user database operations."""
 
-    def __init__(self, db: Database = None, database: Database = None):
+    def __init__(
+        self, db: Optional[Database] = None, database: Optional[Database] = None
+    ):
         """Initialize with database connection.
 
         Args:
@@ -20,11 +22,17 @@ class UserRepository:
         """
         self._db = db or database
 
+    @property
+    def db(self) -> Database:
+        """Return the database instance, raising if not set."""
+        assert self._db is not None, "Database not initialized"
+        return self._db
+
     def _hash_password(self, password: str) -> str:
         """Hash a password using SHA-256."""
         return hashlib.sha256(password.encode()).hexdigest()
 
-    def create(self, email: str, password: str) -> int:
+    def create(self, email: str, password: str) -> Optional[int]:
         """Create a new user.
 
         Args:
@@ -34,14 +42,14 @@ class UserRepository:
         Returns:
             The new user's ID.
         """
-        cursor = self._db.connection.cursor()
+        cursor = self.db.connection.cursor()
         password_hash = self._hash_password(password)
 
         cursor.execute(
             "INSERT INTO users (email, password_hash) VALUES (?, ?)",
-            (email, password_hash)
+            (email, password_hash),
         )
-        self._db.connection.commit()
+        self.db.connection.commit()
 
         return cursor.lastrowid
 
@@ -54,7 +62,7 @@ class UserRepository:
         Returns:
             User dict or None if not found.
         """
-        cursor = self._db.connection.cursor()
+        cursor = self.db.connection.cursor()
         cursor.execute("SELECT * FROM users WHERE email = ?", (email,))
         row = cursor.fetchone()
 
@@ -72,7 +80,7 @@ class UserRepository:
         Returns:
             User dictionary, or None if not found.
         """
-        cursor = self._db.connection.cursor()
+        cursor = self.db.connection.cursor()
         cursor.execute("SELECT * FROM users WHERE id = ?", (user_id,))
         row = cursor.fetchone()
         return dict(row) if row else None
@@ -83,11 +91,11 @@ class UserRepository:
         Returns:
             List of user dictionaries.
         """
-        cursor = self._db.connection.cursor()
+        cursor = self.db.connection.cursor()
         cursor.execute("SELECT * FROM users")
         return [dict(row) for row in cursor.fetchall()]
 
-    def save(self, user_data: Dict[str, Any]) -> int:
+    def save(self, user_data: Dict[str, Any]) -> Optional[int]:
         """Save a user record.
 
         If user_data contains an 'id', returns that ID. Otherwise creates a new user.
@@ -111,9 +119,9 @@ class UserRepository:
         Returns:
             True if a user was deleted, False if not found.
         """
-        cursor = self._db.connection.cursor()
+        cursor = self.db.connection.cursor()
         cursor.execute("DELETE FROM users WHERE id = ?", (user_id,))
-        self._db.connection.commit()
+        self.db.connection.commit()
         return cursor.rowcount > 0
 
     def verify_password(self, email: str, password: str) -> bool:

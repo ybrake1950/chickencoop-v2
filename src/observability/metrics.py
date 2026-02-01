@@ -1,6 +1,7 @@
 """
 Phase 18: Metrics Collection
 """
+
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
@@ -77,7 +78,7 @@ class MetricsCollector:
             memory_percent=mem.percent,
             memory_used_mb=mem.used / (1024 * 1024),
             disk_percent=disk.percent,
-            disk_used_gb=disk.used / (1024 ** 3),
+            disk_used_gb=disk.used / (1024**3),
             network_bytes_sent=net.bytes_sent,
             network_bytes_recv=net.bytes_recv,
             cpu_temperature=temp,

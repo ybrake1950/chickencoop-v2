@@ -21,6 +21,7 @@ class BaseSensor(Sensor, ABC):
 
     def __init__(self, name: str = "sensor"):
         """Initialize sensor with a name."""
+        super().__init__(name=name)
         self._name = name
 
     @property
@@ -38,7 +39,6 @@ class BaseSensor(Sensor, ABC):
         Returns:
             Sensor reading data (type depends on implementation).
         """
-        pass
 
     def is_available(self) -> bool:
         """

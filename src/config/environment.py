@@ -11,10 +11,11 @@ from typing import Optional
 
 class MissingEnvironmentVariable(Exception):
     """Raised when a required environment variable is not set."""
-    pass
 
 
-def get_env(name: str, default: Optional[str] = None, required: bool = False) -> Optional[str]:
+def get_env(
+    name: str, default: Optional[str] = None, required: bool = False
+) -> Optional[str]:
     """
     Get an environment variable value.
 
@@ -33,7 +34,9 @@ def get_env(name: str, default: Optional[str] = None, required: bool = False) ->
 
     if value is None:
         if required:
-            raise MissingEnvironmentVariable(f"Required environment variable not set: {name}")
+            raise MissingEnvironmentVariable(
+                f"Required environment variable not set: {name}"
+            )
         return default
 
     return value
@@ -89,7 +92,7 @@ def get_env_bool(name: str, default: bool = False) -> bool:
     if value is None:
         return default
 
-    return value.lower() in ('true', '1', 'yes')
+    return value.lower() in ("true", "1", "yes")
 
 
 def get_coop_id() -> str:
@@ -132,10 +135,12 @@ def get_secret_key() -> str:
     return value
 
 
-def get_aws_region() -> str:
+def get_aws_region() -> Optional[str]:
     """
     Get the AWS region.
 
     Checks AWS_REGION first, then AWS_DEFAULT_REGION, defaults to 'us-east-1'.
     """
-    return os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+    return os.environ.get("AWS_REGION") or os.environ.get(
+        "AWS_DEFAULT_REGION", "us-east-1"
+    )

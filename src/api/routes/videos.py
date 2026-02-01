@@ -12,13 +12,14 @@ from flask import request, jsonify, session
 # Database Functions (will be mocked in tests)
 # =============================================================================
 
+
 def get_videos(
-    camera: Optional[str] = None,
-    start_date: Optional[str] = None,
-    end_date: Optional[str] = None,
-    retained: Optional[str] = None,
-    page: Optional[int] = None,
-    per_page: Optional[int] = None
+    _camera: Optional[str] = None,
+    _start_date: Optional[str] = None,
+    _end_date: Optional[str] = None,
+    _retained: Optional[str] = None,
+    _page: Optional[int] = None,
+    _per_page: Optional[int] = None,
 ) -> List[Dict[str, Any]]:
     """Retrieve videos with optional filtering and pagination.
 
@@ -36,7 +37,7 @@ def get_videos(
     return []
 
 
-def get_video_by_id(video_id: int) -> Optional[Dict[str, Any]]:
+def get_video_by_id(_video_id: int) -> Optional[Dict[str, Any]]:
     """Retrieve a single video by its unique identifier.
 
     Args:
@@ -48,7 +49,7 @@ def get_video_by_id(video_id: int) -> Optional[Dict[str, Any]]:
     return None
 
 
-def retain_video(s3_key: str, user_id: int, note: Optional[str] = None) -> bool:
+def retain_video(_s3_key: str, _user_id: int, _note: Optional[str] = None) -> bool:
     """Mark a video for permanent retention to prevent automatic deletion.
 
     Args:
@@ -62,7 +63,7 @@ def retain_video(s3_key: str, user_id: int, note: Optional[str] = None) -> bool:
     return True
 
 
-def delete_video(video_id: int) -> bool:
+def delete_video(_video_id: int) -> bool:
     """Delete a video by its unique identifier.
 
     Args:
@@ -78,6 +79,7 @@ def delete_video(video_id: int) -> bool:
 # Route Registration
 # =============================================================================
 
+
 def register_routes(app):
     """Register auth-protected video routes with Flask app.
 
@@ -90,52 +92,48 @@ def register_routes(app):
 
     def list_videos():
         """List all videos with optional filtering and pagination."""
-        if 'user_id' not in session:
+        if "user_id" not in session:
             return jsonify({"error": "Authentication required"}), 401
 
-        camera = request.args.get('camera')
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        retained = request.args.get('retained')
-        page = request.args.get('page', type=int)
-        per_page = request.args.get('per_page', type=int)
+        camera = request.args.get("camera")
+        start_date = request.args.get("start_date")
+        end_date = request.args.get("end_date")
+        retained = request.args.get("retained")
+        page = request.args.get("page", type=int)
+        per_page = request.args.get("per_page", type=int)
 
         videos = get_videos(
-            camera=camera,
-            start_date=start_date,
-            end_date=end_date,
-            retained=retained,
-            page=page,
-            per_page=per_page
+            camera,
+            start_date,
+            end_date,
+            retained,
+            page,
+            per_page,
         )
 
-        return jsonify({
-            "videos": videos,
-            "total": len(videos),
-            "page": page or 1
-        }), 200
+        return jsonify({"videos": videos, "total": len(videos), "page": page or 1}), 200
 
     def retain_video_route():
         """Mark a video for permanent retention."""
-        if 'user_id' not in session:
+        if "user_id" not in session:
             return jsonify({"error": "Authentication required"}), 401
 
         data = request.get_json() or {}
 
-        if 's3_key' not in data:
+        if "s3_key" not in data:
             return jsonify({"error": "s3_key is required"}), 400
 
-        user_id = session.get('user_id')
-        s3_key = data.get('s3_key')
-        note = data.get('note')
+        user_id = session.get("user_id")
+        s3_key = data.get("s3_key")
+        note = data.get("note")
 
-        retain_video(s3_key=s3_key, user_id=user_id, note=note)
+        retain_video(s3_key, user_id, note)
 
         return jsonify({"message": "Video marked for retention"}), 200
 
     def delete_video_route(video_id):
         """Delete a video by its ID."""
-        if 'user_id' not in session:
+        if "user_id" not in session:
             return jsonify({"error": "Authentication required"}), 401
 
         try:
@@ -146,12 +144,12 @@ def register_routes(app):
 
             return jsonify({"message": "Video deleted"}), 200
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             return jsonify({"error": str(e)}), 400
 
     def get_single_video(video_id):
         """Get details for a single video by ID."""
-        if 'user_id' not in session:
+        if "user_id" not in session:
             return jsonify({"error": "Authentication required"}), 401
 
         video = get_video_by_id(video_id)  # pylint: disable=assignment-from-none
@@ -163,16 +161,24 @@ def register_routes(app):
 
     # Override existing view functions from dashboard blueprint if present
     for endpoint, handler in [
-        ('dashboard.get_videos', list_videos),
-        ('dashboard.retain_video', retain_video_route),
+        ("dashboard.get_videos", list_videos),
+        ("dashboard.retain_video", retain_video_route),
     ]:
         if endpoint in app.view_functions:
             app.view_functions[endpoint] = handler
 
     # Register routes that don't exist yet (video detail, delete)
     existing_rules = {rule.rule for rule in app.url_map.iter_rules()}
-    if '/api/videos/<int:video_id>' not in existing_rules:
-        app.add_url_rule('/api/videos/<int:video_id>', 'get_single_video',
-                         get_single_video, methods=['GET'])
-        app.add_url_rule('/api/videos/<int:video_id>', 'delete_video_route',
-                         delete_video_route, methods=['DELETE'])
+    if "/api/videos/<int:video_id>" not in existing_rules:
+        app.add_url_rule(
+            "/api/videos/<int:video_id>",
+            "get_single_video",
+            get_single_video,
+            methods=["GET"],
+        )
+        app.add_url_rule(
+            "/api/videos/<int:video_id>",
+            "delete_video_route",
+            delete_video_route,
+            methods=["DELETE"],
+        )

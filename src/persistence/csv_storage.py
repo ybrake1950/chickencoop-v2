@@ -49,11 +49,7 @@ class CSVStorage(BaseStorage):
         return not file_path.exists() or file_path.stat().st_size == 0
 
     def write_reading(
-        self,
-        timestamp: datetime,
-        temperature: float,
-        humidity: float,
-        coop_id: str
+        self, timestamp: datetime, temperature: float, humidity: float, coop_id: str
     ) -> None:
         """
         Write a sensor reading to today's CSV file.
@@ -67,7 +63,7 @@ class CSVStorage(BaseStorage):
         file_path = self._get_today_file()
         needs_header = self._file_needs_header(file_path)
 
-        with open(file_path, "a", newline="") as f:
+        with open(file_path, "a", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             if needs_header:
                 writer.writerow(self.HEADER)
@@ -86,14 +82,14 @@ class CSVStorage(BaseStorage):
             timestamp=reading.timestamp,
             temperature=reading.temperature,
             humidity=reading.humidity,
-            coop_id=reading.coop_id
+            coop_id=reading.coop_id,
         )
 
     def read_all(
         self,
         csv_file: Path,
         start_date: Optional[date] = None,
-        end_date: Optional[date] = None
+        end_date: Optional[date] = None,
     ) -> List[Dict[str, Any]]:
         """
         Read all readings from a CSV file, optionally filtering by date.
@@ -108,14 +104,14 @@ class CSVStorage(BaseStorage):
         """
         readings = []
 
-        with open(csv_file, "r", newline="") as f:
+        with open(csv_file, "r", newline="", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 reading = {
                     "timestamp": row["timestamp"],
                     "temperature": float(row["temperature"]),
                     "humidity": float(row["humidity"]),
-                    "coop_id": row["coop_id"]
+                    "coop_id": row["coop_id"],
                 }
 
                 if start_date or end_date:
@@ -148,7 +144,7 @@ class CSVStorage(BaseStorage):
                 temperature=r["temperature"],
                 humidity=r["humidity"],
                 coop_id=r["coop_id"],
-                timestamp=datetime.strptime(r["timestamp"], "%Y-%m-%d %H:%M:%S")
+                timestamp=datetime.strptime(r["timestamp"], "%Y-%m-%d %H:%M:%S"),
             )
             for r in readings
         ]
@@ -249,7 +245,7 @@ class CSVStorage(BaseStorage):
 
         if temperature is None or humidity is None:
             # Try to extract from nested sensor readings
-            for key, value in readings.items():
+            for _key, value in readings.items():
                 if isinstance(value, dict):
                     if temperature is None:
                         temperature = value.get("temperature")
@@ -264,7 +260,7 @@ class CSVStorage(BaseStorage):
             file_path = self.base_path
             needs_header = self._file_needs_header(file_path)
 
-            with open(file_path, "a", newline="") as f:
+            with open(file_path, "a", newline="", encoding="utf-8") as f:
                 writer = csv.writer(f)
                 if needs_header:
                     writer.writerow(self.HEADER)
@@ -275,7 +271,7 @@ class CSVStorage(BaseStorage):
                 timestamp=timestamp,
                 temperature=temperature,
                 humidity=humidity,
-                coop_id=coop_id
+                coop_id=coop_id,
             )
 
     def save(self, data: Any) -> None:
@@ -298,6 +294,7 @@ class CSVStorage(BaseStorage):
         Returns:
             List of reading dictionaries.
         """
+        file_path: Optional[Path] = None
         if identifier:
             target_date = datetime.strptime(identifier, self.DATE_FORMAT).date()
             file_path = self.get_file_for_date(target_date)

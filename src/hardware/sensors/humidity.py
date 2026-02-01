@@ -8,8 +8,8 @@ from .base import BaseSensor
 from .interface import SensorReadError
 
 try:
-    import smbus2
     import adafruit_ahtx0
+
     HAS_HARDWARE = True
 except ImportError:
     HAS_HARDWARE = False
@@ -22,7 +22,7 @@ class HumiditySensor(BaseSensor):
     Returns relative humidity as a percentage (0-100).
     """
 
-    def __init__(self, bus_number: int = 1):
+    def __init__(self, _bus_number: int = 1):
         """
         Initialize humidity sensor.
 
@@ -36,9 +36,10 @@ class HumiditySensor(BaseSensor):
             try:
                 import board
                 import busio
+
                 i2c = busio.I2C(board.SCL, board.SDA)
                 self._sensor = adafruit_ahtx0.AHTx0(i2c)
-            except Exception:
+            except OSError:
                 # If hardware initialization fails, leave _sensor as None
                 pass
 
@@ -65,7 +66,7 @@ class HumiditySensor(BaseSensor):
             return float(humidity)
 
         except (IOError, OSError, AttributeError) as e:
-            raise SensorReadError(f"Failed to read humidity: {e}")
+            raise SensorReadError(f"Failed to read humidity: {e}") from e
 
     def is_available(self) -> bool:
         """Check if humidity sensor is available."""

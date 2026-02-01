@@ -5,11 +5,10 @@ Provides secure handling of credentials via environment variables
 and AWS Secrets Manager, with caching, rotation, and exposure prevention.
 """
 
-import json
 import logging
 import os
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -18,6 +17,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class SecretConfig:
     """Configuration for secret management."""
+
     environment: str = "development"
     cache_ttl_seconds: int = 300
 
@@ -53,7 +53,7 @@ class AWSSecretsManagerProvider:
             self._cache[secret_id] = value
             self._cache_times[secret_id] = now
             return value
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             if required:
                 raise
             return None
@@ -101,6 +101,7 @@ class SecretManager:
     def validate_secret(self, key: str, pattern: str) -> bool:
         """Validate that a secret matches the expected regex pattern."""
         import re
+
         value = os.environ.get(key, "")
         if not re.match(pattern, value):
             raise ValueError(f"Secret '{key}' does not match required pattern")
@@ -114,7 +115,7 @@ class SecretManager:
         """Rotate a certificate and return the rotation result."""
         return {"cert_type": cert_type, "path": new_cert_path, "status": "rotated"}
 
-    def get_certificate(self, cert_type: str) -> Optional[str]:
+    def get_certificate(self, _cert_type: str) -> Optional[str]:
         """Retrieve a certificate by type."""
         return None
 

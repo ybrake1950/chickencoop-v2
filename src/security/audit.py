@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 
 class AuditEventType(Enum):
     """Types of audit events."""
+
     LOGIN_SUCCESS = "LOGIN_SUCCESS"
     LOGIN_FAILURE = "LOGIN_FAILURE"
     LOGOUT = "LOGOUT"
@@ -48,7 +49,14 @@ _EVENT_LOG_LEVELS: Dict[AuditEventType, str] = {
 }
 
 # Fields that must never appear in logs
-_SENSITIVE_FIELDS = {"password", "new_password", "old_password", "secret", "token", "api_key"}
+_SENSITIVE_FIELDS = {
+    "password",
+    "new_password",
+    "old_password",
+    "secret",
+    "token",
+    "api_key",
+}
 
 # Fields that should be redacted
 _PII_FIELDS = {"email", "phone", "ssn"}
@@ -63,6 +71,7 @@ def _compute_integrity_hash(data: dict) -> str:
 @dataclass
 class AuditLogEntry:
     """A single audit log entry."""
+
     event_type: AuditEventType
     timestamp: datetime
     user_id: Optional[str] = None
@@ -132,7 +141,7 @@ class AuditLogger:
         self._entries.append(entry)
 
         # Append to log file
-        with open(self.log_path, "a") as f:
+        with open(self.log_path, "a", encoding="utf-8") as f:
             f.write(json.dumps(entry.to_dict(), default=str) + "\n")
 
         # Ship to CloudWatch if enabled
@@ -140,10 +149,12 @@ class AuditLogger:
             self._cloudwatch_client.put_log_events(
                 logGroupName="/chickencoop/audit",
                 logStreamName="audit",
-                logEvents=[{
-                    "timestamp": int(entry.timestamp.timestamp() * 1000),
-                    "message": json.dumps(entry.to_dict(), default=str),
-                }],
+                logEvents=[
+                    {
+                        "timestamp": int(entry.timestamp.timestamp() * 1000),
+                        "message": json.dumps(entry.to_dict(), default=str),
+                    }
+                ],
             )
 
     def _make_entry(
@@ -347,7 +358,7 @@ class AuditLogger:
 
     def get_raw_log_line(self, index: int = -1) -> str:
         """Return a raw JSON log line from the file by index."""
-        lines = self.log_path.read_text().strip().splitlines()
+        lines = self.log_path.read_text(encoding="utf-8").strip().splitlines()
         return lines[index]
 
     # -----------------------------------------------------------------

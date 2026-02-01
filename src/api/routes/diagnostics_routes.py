@@ -13,7 +13,7 @@ import os
 
 from flask import Blueprint, jsonify
 
-diagnostics_bp = Blueprint('diagnostics', __name__, url_prefix='/api/diagnostics')
+diagnostics_bp = Blueprint("diagnostics", __name__, url_prefix="/api/diagnostics")
 
 
 def _truncate_credential(value: str) -> str:
@@ -31,7 +31,7 @@ def _truncate_credential(value: str) -> str:
     return f"{value[:4]}...{value[-4:]}"
 
 
-@diagnostics_bp.route('/run', methods=['GET'])
+@diagnostics_bp.route("/run", methods=["GET"])
 def run_all_diagnostics():
     """Run all diagnostic checks and return comprehensive results.
 
@@ -43,86 +43,66 @@ def run_all_diagnostics():
     """
     checks = [
         {
-            'name': 'amplify_config_loaded',
-            'status': 'success',
-            'value': 'Configuration loaded'
+            "name": "amplify_config_loaded",
+            "status": "success",
+            "value": "Configuration loaded",
         },
         {
-            'name': 'api_urls_configured',
-            'status': 'success',
-            'value': 'URLs configured'
+            "name": "api_urls_configured",
+            "status": "success",
+            "value": "URLs configured",
         },
         {
-            'name': 'auth_session_fetched',
-            'status': 'success',
-            'value': 'Session active'
+            "name": "auth_session_fetched",
+            "status": "success",
+            "value": "Session active",
         },
         {
-            'name': 'cognito_tokens_present',
-            'status': 'success',
-            'value': 'Tokens present'
+            "name": "cognito_tokens_present",
+            "status": "success",
+            "value": "Tokens present",
+        },
+        {"name": "access_token_valid", "status": "success", "value": "Token valid"},
+        {"name": "id_token_valid", "status": "success", "value": "Token valid"},
+        {
+            "name": "credentials_expiration",
+            "status": "info",
+            "value": "Expires in 1 hour",
         },
         {
-            'name': 'access_token_valid',
-            'status': 'success',
-            'value': 'Token valid'
+            "name": "aws_credentials_present",
+            "status": "success",
+            "value": "Credentials present",
         },
         {
-            'name': 'id_token_valid',
-            'status': 'success',
-            'value': 'Token valid'
+            "name": "access_key_id_present",
+            "status": "success",
+            "value": _truncate_credential(os.environ.get("AWS_ACCESS_KEY_ID", "")),
         },
         {
-            'name': 'credentials_expiration',
-            'status': 'info',
-            'value': 'Expires in 1 hour'
+            "name": "secret_access_key_present",
+            "status": "success",
+            "value": "Present (hidden)",
+        },
+        {"name": "session_token_present", "status": "success", "value": "Present"},
+        {
+            "name": "identity_pool_id",
+            "status": "success",
+            "value": "us-east-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
         },
         {
-            'name': 'aws_credentials_present',
-            'status': 'success',
-            'value': 'Credentials present'
+            "name": "user_sub",
+            "status": "success",
+            "value": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
         },
-        {
-            'name': 'access_key_id_present',
-            'status': 'success',
-            'value': _truncate_credential(os.environ.get('AWS_ACCESS_KEY_ID', ''))
-        },
-        {
-            'name': 'secret_access_key_present',
-            'status': 'success',
-            'value': 'Present (hidden)'
-        },
-        {
-            'name': 'session_token_present',
-            'status': 'success',
-            'value': 'Present'
-        },
-        {
-            'name': 'identity_pool_id',
-            'status': 'success',
-            'value': 'us-east-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
-        },
-        {
-            'name': 'user_sub',
-            'status': 'success',
-            'value': 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'
-        },
-        {
-            'name': 'user_email',
-            'status': 'success',
-            'value': 'user@example.com'
-        },
-        {
-            'name': 'test_api_call',
-            'status': 'success',
-            'value': 'HTTP 200 success'
-        }
+        {"name": "user_email", "status": "success", "value": "user@example.com"},
+        {"name": "test_api_call", "status": "success", "value": "HTTP 200 success"},
     ]
 
-    return jsonify({'checks': checks})
+    return jsonify({"checks": checks})
 
 
-@diagnostics_bp.route('/force-refresh', methods=['POST'])
+@diagnostics_bp.route("/force-refresh", methods=["POST"])
 def force_refresh():
     """Force a credential refresh by clearing caches and triggering signout.
 
@@ -132,15 +112,17 @@ def force_refresh():
     Returns:
         tuple: JSON response with refresh status and redirect URL.
     """
-    return jsonify({
-        'cache_cleared': True,
-        'localstorage_cleared': True,
-        'signout_triggered': True,
-        'redirect': '/login'
-    })
+    return jsonify(
+        {
+            "cache_cleared": True,
+            "localstorage_cleared": True,
+            "signout_triggered": True,
+            "redirect": "/login",
+        }
+    )
 
 
-@diagnostics_bp.route('/iam-status', methods=['GET'])
+@diagnostics_bp.route("/iam-status", methods=["GET"])
 def get_iam_status():
     """Get the IAM policy attachment and deployment status.
 
@@ -150,15 +132,17 @@ def get_iam_status():
     Returns:
         tuple: JSON response with IAM role and policy status.
     """
-    return jsonify({
-        'role': 'Cognito_ChickenCoopAuth_Role',
-        'policy_attached': True,
-        'lambda_invoke_permission': True,
-        'deployment_status': 'complete'
-    })
+    return jsonify(
+        {
+            "role": "Cognito_ChickenCoopAuth_Role",
+            "policy_attached": True,
+            "lambda_invoke_permission": True,
+            "deployment_status": "complete",
+        }
+    )
 
 
-@diagnostics_bp.route('/troubleshoot/<error_code>', methods=['GET'])
+@diagnostics_bp.route("/troubleshoot/<error_code>", methods=["GET"])
 def get_troubleshooting_steps(error_code: str):
     """Get step-by-step troubleshooting guide for a specific error code.
 
@@ -169,24 +153,21 @@ def get_troubleshooting_steps(error_code: str):
         tuple: JSON response with ordered list of troubleshooting steps.
     """
     guides = {
-        '403': {
-            'steps': [
+        "403": {
+            "steps": [
                 {
-                    'step': 1,
-                    'description': 'Clear cached credentials and browser storage'
+                    "step": 1,
+                    "description": "Clear cached credentials and browser storage",
                 },
                 {
-                    'step': 2,
-                    'description': 'Sign out and sign in again to refresh tokens'
+                    "step": 2,
+                    "description": "Sign out and sign in again to refresh tokens",
                 },
                 {
-                    'step': 3,
-                    'description': 'Verify IAM policy is attached to Cognito role'
+                    "step": 3,
+                    "description": "Verify IAM policy is attached to Cognito role",
                 },
-                {
-                    'step': 4,
-                    'description': 'Check Lambda function permissions'
-                }
+                {"step": 4, "description": "Check Lambda function permissions"},
             ]
         }
     }
@@ -194,11 +175,6 @@ def get_troubleshooting_steps(error_code: str):
     if error_code in guides:
         return jsonify(guides[error_code])
 
-    return jsonify({
-        'steps': [
-            {
-                'step': 1,
-                'description': 'Check application logs for details'
-            }
-        ]
-    })
+    return jsonify(
+        {"steps": [{"step": 1, "description": "Check application logs for details"}]}
+    )

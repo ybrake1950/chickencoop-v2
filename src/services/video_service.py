@@ -19,7 +19,9 @@ class VideoService:
         self.video_repo = video_repo
         self.s3_client = s3_client
 
-    def record_video(self, camera_name: str, duration: int = 30) -> Optional[Dict[str, Any]]:
+    def record_video(
+        self, camera_name: str, duration: int = 30
+    ) -> Optional[Dict[str, Any]]:
         """Record a video clip from the specified camera.
 
         Args:

@@ -20,17 +20,14 @@ except ImportError:
 # Custom Exceptions
 class CameraNotStartedError(Exception):
     """Raised when attempting operations on a non-started camera."""
-    pass
 
 
 class CameraRecordingError(Exception):
     """Raised when recording operations fail."""
-    pass
 
 
 class CameraConfigError(Exception):
     """Raised when camera configuration is invalid."""
-    pass
 
 
 class PiCamera(Camera):
@@ -41,7 +38,7 @@ class PiCamera(Camera):
         name: str = "picamera",
         resolution: Tuple[int, int] = (1280, 720),
         framerate: int = 24,
-        rotation: int = 0
+        rotation: int = 0,
     ):
         """Initialize Pi Camera.
 
@@ -98,6 +95,7 @@ class PiCamera(Camera):
         if not self.is_started:
             raise CameraNotStartedError("Camera must be started before capturing")
 
+        assert self._camera is not None
         if path:
             self._camera.capture_file(str(path))
             return None
@@ -121,6 +119,7 @@ class PiCamera(Camera):
             raise CameraRecordingError("Already recording")
 
         # Start recording
+        assert self._camera is not None
         self._camera.start_recording(str(path))
         self.is_recording = True
 
@@ -210,10 +209,7 @@ class PiCamera(Camera):
         name = config.get("name", "picamera")
 
         return cls(
-            name=name,
-            resolution=resolution,
-            framerate=framerate,
-            rotation=rotation
+            name=name, resolution=resolution, framerate=framerate, rotation=rotation
         )
 
     def __enter__(self):

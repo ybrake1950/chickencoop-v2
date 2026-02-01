@@ -5,16 +5,17 @@ Endpoints for managing chickens and headcount operations.
 """
 
 from typing import Any, Dict, List, Optional
-from flask import Blueprint, request, jsonify, session
+from flask import Blueprint, request, jsonify
 
-chickens_bp = Blueprint('chickens', __name__)
+chickens_bp = Blueprint("chickens", __name__)
 
 
 # =============================================================================
 # Database Functions (will be mocked in tests)
 # =============================================================================
 
-def get_all_chickens(active_only: bool = False) -> List[Dict[str, Any]]:
+
+def get_all_chickens(_active_only: bool = False) -> List[Dict[str, Any]]:
     """Retrieve all chickens from the database.
 
     Args:
@@ -26,7 +27,7 @@ def get_all_chickens(active_only: bool = False) -> List[Dict[str, Any]]:
     return []
 
 
-def create_chicken(data: Dict[str, Any]) -> Dict[str, Any]:
+def create_chicken(_data: Dict[str, Any]) -> Dict[str, Any]:
     """Create a new chicken record in the database.
 
     Args:
@@ -35,10 +36,10 @@ def create_chicken(data: Dict[str, Any]) -> Dict[str, Any]:
     Returns:
         The created chicken record.
     """
-    return data
+    return _data
 
 
-def update_chicken(chicken_id: int, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def update_chicken(_chicken_id: int, _data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Update an existing chicken record.
 
     Args:
@@ -51,7 +52,7 @@ def update_chicken(chicken_id: int, data: Dict[str, Any]) -> Optional[Dict[str, 
     return None
 
 
-def deactivate_chicken(chicken_id: int) -> bool:
+def deactivate_chicken(_chicken_id: int) -> bool:
     """Deactivate a chicken (soft delete).
 
     Args:
@@ -72,7 +73,7 @@ def get_latest_headcount() -> Optional[Dict[str, Any]]:
     return None
 
 
-def get_headcount_history(days: int = 7) -> List[Dict[str, Any]]:
+def get_headcount_history(_days: int = 7) -> List[Dict[str, Any]]:
     """Get headcount history for the specified number of days.
 
     Args:
@@ -97,7 +98,8 @@ def trigger_headcount() -> Dict[str, Any]:
 # Blueprint Routes
 # =============================================================================
 
-@chickens_bp.route('/api/chickens', methods=['GET'])
+
+@chickens_bp.route("/api/chickens", methods=["GET"])
 def list_chickens():
     """List all chickens in the registry.
 
@@ -107,16 +109,13 @@ def list_chickens():
     Returns:
         tuple: JSON response with chickens list and expected_count.
     """
-    active_only = request.args.get('active', '').lower() == 'true'
-    chickens = get_all_chickens(active_only=active_only)
-    active_chickens = [c for c in chickens if c.get('is_active', True)]
-    return jsonify({
-        "chickens": chickens,
-        "expected_count": len(active_chickens)
-    }), 200
+    active_only = request.args.get("active", "").lower() == "true"
+    chickens = get_all_chickens(active_only)
+    active_chickens = [c for c in chickens if c.get("is_active", True)]
+    return jsonify({"chickens": chickens, "expected_count": len(active_chickens)}), 200
 
 
-@chickens_bp.route('/api/chickens', methods=['POST'])
+@chickens_bp.route("/api/chickens", methods=["POST"])
 def register_chicken():
     """Register a new chicken in the flock.
 
@@ -127,17 +126,17 @@ def register_chicken():
     """
     data = request.get_json() or {}
 
-    if 'name' not in data:
+    if "name" not in data:
         return jsonify({"error": "Name is required"}), 400
 
     try:
         chicken = create_chicken(data)
         return jsonify(chicken), 201
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         return jsonify({"error": str(e)}), 409
 
 
-@chickens_bp.route('/api/chickens/<int:chicken_id>', methods=['PUT'])
+@chickens_bp.route("/api/chickens/<int:chicken_id>", methods=["PUT"])
 def update_chicken_route(chicken_id):
     """Update an existing chicken's details.
 
@@ -156,7 +155,7 @@ def update_chicken_route(chicken_id):
     return jsonify(result), 200
 
 
-@chickens_bp.route('/api/chickens/<int:chicken_id>', methods=['DELETE'])
+@chickens_bp.route("/api/chickens/<int:chicken_id>", methods=["DELETE"])
 def deactivate_chicken_route(chicken_id):
     """Deactivate a chicken (soft delete).
 
@@ -174,11 +173,12 @@ def deactivate_chicken_route(chicken_id):
 # Legacy Route Registration (for backward compatibility)
 # =============================================================================
 
+
 def register_routes(app):
     """Register chicken routes with Flask app (legacy method).
 
     Args:
         app: The Flask application instance to register the chickens blueprint with.
     """
-    if 'chickens' not in app.blueprints:
+    if "chickens" not in app.blueprints:
         app.register_blueprint(chickens_bp)

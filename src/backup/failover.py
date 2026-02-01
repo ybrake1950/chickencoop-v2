@@ -5,7 +5,7 @@ Detects coop failures, triggers automatic failover to a backup coop,
 and handles failback with data synchronization when the primary recovers.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
@@ -102,7 +102,10 @@ class FailoverManager:
         """Check if the primary coop has failed and trigger failover if needed."""
         primary = self.config.primary_coop
         status = self._get_or_create_status(primary)
-        if status.consecutive_failures >= self.config.failure_threshold and not self._failover_active:
+        if (
+            status.consecutive_failures >= self.config.failure_threshold
+            and not self._failover_active
+        ):
             self._failover_active = True
             self._activate_backup(self.config.backup_coop)
             self._send_notification(primary)
@@ -113,7 +116,11 @@ class FailoverManager:
         """Check if the primary coop has recovered and trigger failback if stable."""
         primary = self.config.primary_coop
         status = self._get_or_create_status(primary)
-        if self._failover_active and status.healthy and status.consecutive_successes >= 3:
+        if (
+            self._failover_active
+            and status.healthy
+            and status.consecutive_successes >= 3
+        ):
             self._failover_active = False
             status.state = FailoverState.HEALTHY
             self._sync_data()

@@ -4,6 +4,7 @@ Phase 17: Data Backup Implementation
 Provides video backup, configuration versioning, backup verification,
 and encryption for coop data protection.
 """
+
 import hashlib
 import json
 import logging
@@ -189,14 +190,21 @@ class BackupVerifier:
 
     def verify_checksum(self, backup: Any) -> VerifyResult:
         """Verify a backup's checksum. Sends an alert if verification fails."""
-        algorithm = backup.checksum.split(":")[0] if ":" in backup.checksum else "unknown"
-        if self._computed_checksum is not None and self._computed_checksum != backup.checksum:
+        algorithm = (
+            backup.checksum.split(":")[0] if ":" in backup.checksum else "unknown"
+        )
+        if (
+            self._computed_checksum is not None
+            and self._computed_checksum != backup.checksum
+        ):
             logger.info("Backup verification FAILED for %s", backup.path)
             return VerifyResult(verified=False, algorithm=algorithm, alert_sent=True)
         logger.info("Backup verification passed for %s", backup.path)
         return VerifyResult(verified=True, algorithm=algorithm)
 
-    def test_restore(self, backup: Any, target_dir: str) -> RestoreResult:
+    def test_restore(  # pylint: disable=unused-argument
+        self, backup: Any, target_dir: str
+    ) -> RestoreResult:
         """Perform a test restore of the backup to verify recoverability."""
         return RestoreResult(success=True, files_restored=1)
 
@@ -210,7 +218,7 @@ class BackupEncryption:
 
     def encrypt(self, data: bytes) -> bytes:
         """Encrypt data using XOR with a SHA-256 derived key stream."""
-        key_stream = (self._key * ((len(data) // len(self._key)) + 1))[:len(data)]
+        key_stream = (self._key * ((len(data) // len(self._key)) + 1))[: len(data)]
         return bytes(a ^ b for a, b in zip(data, key_stream))
 
     def decrypt(self, data: bytes) -> bytes:

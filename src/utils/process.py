@@ -6,7 +6,9 @@ import subprocess
 from typing import List, Optional
 
 
-def run_command(args: List[str], shell: bool = False, timeout: Optional[int] = 30) -> subprocess.CompletedProcess:
+def run_command(
+    args: List[str], shell: bool = False, timeout: Optional[int] = 30
+) -> subprocess.CompletedProcess:
     """Run a command safely using list arguments.
 
     Args:
@@ -23,4 +25,5 @@ def run_command(args: List[str], shell: bool = False, timeout: Optional[int] = 3
         timeout=timeout,
         capture_output=True,
         text=True,
+        check=False,
     )

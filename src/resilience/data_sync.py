@@ -214,7 +214,9 @@ class DataSyncManager:
                 + sensor_result.items_synced
                 + video_result.items_synced
             )
-            result.errors = alert_result.errors + sensor_result.errors + video_result.errors
+            result.errors = (
+                alert_result.errors + sensor_result.errors + video_result.errors
+            )
 
             if result.success:
                 self._status = SyncStatus.COMPLETED
@@ -225,7 +227,7 @@ class DataSyncManager:
                 self._retry_count += 1
                 self._sync_scheduled = True
 
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             result.success = False
             result.error_message = str(e)
             result.errors.append(str(e))
@@ -396,7 +398,10 @@ class DataSyncManager:
                 )
             )
 
-        return sorted(items, key=lambda i: (TYPE_PRIORITY.get(i.type, 99), i.priority, i.timestamp))
+        return sorted(
+            items,
+            key=lambda i: (TYPE_PRIORITY.get(i.type, 99), i.priority, i.timestamp),
+        )
 
     # -------------------------------------------------------------------------
     # Bandwidth Management
@@ -462,7 +467,7 @@ class DataSyncManager:
     # -------------------------------------------------------------------------
 
     def resolve_settings_conflict(
-        self, local: Dict[str, Any], remote: Dict[str, Any]
+        self, _local: Dict[str, Any], remote: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Resolve settings conflict (remote wins by default).
 
@@ -504,7 +509,9 @@ class DataSyncManager:
         Returns:
             Progress information dictionary.
         """
-        total = len(self._sensor_buffer) + len(self._video_queue) + len(self._alert_buffer)
+        total = (
+            len(self._sensor_buffer) + len(self._video_queue) + len(self._alert_buffer)
+        )
         completed = self._checkpoint.items_completed if self._checkpoint else 0
 
         return {
@@ -591,18 +598,17 @@ class DataSyncManager:
                 for v in self._video_queue
             ],
             "alert_buffer": [
-                {
-                    k: (v.value if hasattr(v, "value") else v)
-                    for k, v in a.items()
-                }
+                {k: (v.value if hasattr(v, "value") else v) for k, v in a.items()}
                 for a in self._alert_buffer
             ],
-            "checkpoint": {
-                "items_completed": self._checkpoint.items_completed,
-                "timestamp": self._checkpoint.timestamp,
-            }
-            if self._checkpoint
-            else None,
+            "checkpoint": (
+                {
+                    "items_completed": self._checkpoint.items_completed,
+                    "timestamp": self._checkpoint.timestamp,
+                }
+                if self._checkpoint
+                else None
+            ),
         }
 
         self._state_file.parent.mkdir(parents=True, exist_ok=True)
@@ -624,5 +630,5 @@ class DataSyncManager:
                     items_completed=state["checkpoint"].get("items_completed", 0),
                     timestamp=state["checkpoint"].get("timestamp", ""),
                 )
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             pass

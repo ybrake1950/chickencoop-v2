@@ -7,7 +7,7 @@ Provides MQTT publish operations for sensor readings, alerts, and status updates
 import json
 import os
 from datetime import datetime, timezone
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 import boto3
 
@@ -19,7 +19,7 @@ _iot_client_instance = None
 
 def get_iot_client(config: Optional[Dict[str, Any]] = None) -> "IoTClient":
     """Get or create a singleton IoTClient instance."""
-    global _iot_client_instance
+    global _iot_client_instance  # pylint: disable=global-statement
     if _iot_client_instance is None:
         if config is None:
             config = {
@@ -27,7 +27,7 @@ def get_iot_client(config: Optional[Dict[str, Any]] = None) -> "IoTClient":
                 "iot": {
                     "endpoint": os.environ.get("IOT_ENDPOINT", "localhost"),
                     "topic_prefix": os.environ.get("IOT_TOPIC_PREFIX", "chickencoop"),
-                }
+                },
             }
         _iot_client_instance = IoTClient(config)
     return _iot_client_instance
@@ -57,7 +57,7 @@ class IoTClient:
         self._client = boto3.client(
             "iot-data",
             region_name=self.region,
-            endpoint_url=f"https://{self._endpoint}"
+            endpoint_url=f"https://{self._endpoint}",
         )
 
     def get_sensor_topic(self, coop_id: str) -> str:
@@ -89,7 +89,7 @@ class IoTClient:
             try:
                 self._client.publish(topic=topic, payload=payload)
                 return True
-            except Exception:
+            except Exception:  # pylint: disable=broad-exception-caught
                 if attempts >= self._max_retries:
                     return False
         return False  # pragma: no cover
@@ -105,21 +105,18 @@ class IoTClient:
             True if publish succeeded, False otherwise
         """
         topic = self.get_sensor_topic(reading.coop_id)
-        payload = json.dumps({
-            "temperature": reading.temperature,
-            "humidity": reading.humidity,
-            "timestamp": reading.timestamp.isoformat(),
-            "coop_id": reading.coop_id
-        })
+        payload = json.dumps(
+            {
+                "temperature": reading.temperature,
+                "humidity": reading.humidity,
+                "timestamp": reading.timestamp.isoformat(),
+                "coop_id": reading.coop_id,
+            }
+        )
 
         return self._publish_with_retry(topic, payload)
 
-    def publish_alert(
-        self,
-        coop_id: str,
-        alert_type: str,
-        message: str
-    ) -> bool:
+    def publish_alert(self, coop_id: str, alert_type: str, message: str) -> bool:
         """
         Publish alert message to IoT Core.
 
@@ -132,19 +129,18 @@ class IoTClient:
             True if publish succeeded, False otherwise
         """
         topic = self.get_alert_topic(coop_id)
-        payload = json.dumps({
-            "type": alert_type,
-            "message": message,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        payload = json.dumps(
+            {
+                "type": alert_type,
+                "message": message,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
         return self._publish_with_retry(topic, payload)
 
     def publish_status(
-        self,
-        coop_id: str,
-        status: str,
-        details: Optional[Dict[str, Any]] = None
+        self, coop_id: str, status: str, details: Optional[Dict[str, Any]] = None
     ) -> bool:
         """
         Publish status update to IoT Core.
@@ -160,7 +156,7 @@ class IoTClient:
         topic = self.get_status_topic(coop_id)
         payload_dict = {
             "status": status,
-            "timestamp": datetime.now(timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         }
         if details:
             payload_dict.update(details)
@@ -181,7 +177,7 @@ class IoTClient:
         """
         return self._publish_with_retry(topic, payload)
 
-    def subscribe(self, topic: str, callback: Any = None) -> bool:
+    def subscribe(self, _topic: str, _callback: Any = None) -> bool:
         """Subscribe to an MQTT topic.
 
         Args:

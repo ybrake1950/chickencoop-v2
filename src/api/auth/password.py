@@ -39,7 +39,7 @@ def verify_password(password: str, hashed: str) -> bool:
         True if the password matches, False otherwise.
     """
     try:
-        salt_hex, iterations_str, stored_hash = hashed.split('$')
+        salt_hex, iterations_str, stored_hash = hashed.split("$")
         salt = bytes.fromhex(salt_hex)
         iterations = int(iterations_str)
         dk = hashlib.pbkdf2_hmac(

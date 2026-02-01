@@ -13,8 +13,8 @@ from .interface import SensorReadError
 from src.models.sensor import SensorReading
 
 try:
-    import smbus2
     import adafruit_ahtx0
+
     HAS_HARDWARE = True
 except ImportError:
     HAS_HARDWARE = False
@@ -27,7 +27,9 @@ class CombinedSensor(BaseSensor):
     Reads both temperature and humidity from AHT20/AHT10 sensor.
     """
 
-    def __init__(self, unit: str = "fahrenheit", bus_number: int = 1, coop_id: str = "default"):
+    def __init__(
+        self, unit: str = "fahrenheit", _bus_number: int = 1, coop_id: str = "default"
+    ):
         """
         Initialize combined sensor.
 
@@ -45,9 +47,10 @@ class CombinedSensor(BaseSensor):
             try:
                 import board
                 import busio
+
                 i2c = busio.I2C(board.SCL, board.SDA)
                 self._sensor = adafruit_ahtx0.AHTx0(i2c)
-            except Exception:
+            except OSError:
                 # If hardware initialization fails, leave _sensor as None
                 pass
 
@@ -62,10 +65,7 @@ class CombinedSensor(BaseSensor):
             SensorReadError: If sensor read fails.
         """
         if self._sensor is None:
-            return {
-                "temperature": 0.0,
-                "humidity": 0.0
-            }
+            return {"temperature": 0.0, "humidity": 0.0}
 
         try:
             # Read temperature from sensor
@@ -76,18 +76,15 @@ class CombinedSensor(BaseSensor):
             if self.unit == "celsius":
                 temperature = float(temp_celsius)
             else:  # fahrenheit (default)
-                temperature = float((temp_celsius * 9/5) + 32)
+                temperature = float((temp_celsius * 9 / 5) + 32)
 
             # Ensure humidity is in valid range
             humidity = max(0.0, min(100.0, humidity))
 
-            return {
-                "temperature": temperature,
-                "humidity": float(humidity)
-            }
+            return {"temperature": temperature, "humidity": float(humidity)}
 
         except (IOError, OSError, AttributeError) as e:
-            raise SensorReadError(f"Failed to read sensor: {e}")
+            raise SensorReadError(f"Failed to read sensor: {e}") from e
 
     def read_as_model(self) -> SensorReading:
         """
@@ -106,7 +103,7 @@ class CombinedSensor(BaseSensor):
             humidity=data["humidity"],
             coop_id=self.coop_id,
             timestamp=datetime.now(timezone.utc),
-            unit=self.unit
+            unit=self.unit,
         )
 
     def is_available(self) -> bool:

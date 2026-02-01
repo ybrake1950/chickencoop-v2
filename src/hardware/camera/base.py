@@ -28,7 +28,6 @@ class BaseCamera(ABC):
         Args:
             path: Optional path to save image file. If None, returns image data.
         """
-        pass
 
     @abstractmethod
     def record(self, path: Path, duration: int = 30):
@@ -38,7 +37,6 @@ class BaseCamera(ABC):
             path: Path where video file will be saved.
             duration: Recording duration in seconds (default: 30).
         """
-        pass
 
     @property
     def status(self) -> str:

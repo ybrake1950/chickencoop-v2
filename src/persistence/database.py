@@ -14,7 +14,7 @@ _database_instance = None
 
 def get_database(db_path: Optional[Union[str, Path]] = None) -> "Database":
     """Get or create a singleton Database instance."""
-    global _database_instance
+    global _database_instance  # pylint: disable=global-statement
     if _database_instance is None:
         if db_path is None:
             db_path = os.environ.get("DB_PATH", ":memory:")
@@ -78,7 +78,8 @@ class Database:
         """
         cursor = self.connection.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 email TEXT UNIQUE NOT NULL,
@@ -86,9 +87,11 @@ class Database:
                 is_active INTEGER DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
 
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS chickens (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
@@ -98,9 +101,11 @@ class Database:
                 is_active INTEGER DEFAULT 1,
                 notes TEXT
             )
-        """)
+        """
+        )
 
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS headcount_logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -110,9 +115,11 @@ class Database:
                 confidence REAL,
                 method TEXT
             )
-        """)
+        """
+        )
 
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS videos (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 filename TEXT NOT NULL,
@@ -123,7 +130,8 @@ class Database:
                 upload_date TIMESTAMP,
                 retain_permanently INTEGER DEFAULT 0
             )
-        """)
+        """
+        )
 
         self.connection.commit()
 
@@ -166,18 +174,20 @@ class Database:
         Returns:
             List of column info dicts with keys: cid, name, type, notnull, default, pk.
         """
-        if not re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table_name):
+        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", table_name):
             raise ValueError(f"Invalid table name: {table_name}")
         cursor = self.connection.cursor()
         cursor.execute(f"PRAGMA table_info({table_name})")
         columns = []
         for row in cursor.fetchall():
-            columns.append({
-                "cid": row[0],
-                "name": row[1],
-                "type": row[2],
-                "notnull": row[3],
-                "default": row[4],
-                "pk": row[5]
-            })
+            columns.append(
+                {
+                    "cid": row[0],
+                    "name": row[1],
+                    "type": row[2],
+                    "notnull": row[3],
+                    "default": row[4],
+                    "pk": row[5],
+                }
+            )
         return columns

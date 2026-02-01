@@ -118,8 +118,11 @@ class ChickenCounter:
             width = max_c - min_c + 1
             height = max_r - min_r + 1
             if width > 5 and height > 5:
-                regions.append(BoundingBox(x=int(min_c), y=int(min_r),
-                                           width=int(width), height=int(height)))
+                regions.append(
+                    BoundingBox(
+                        x=int(min_c), y=int(min_r), width=int(width), height=int(height)
+                    )
+                )
 
         return regions
 
@@ -154,12 +157,12 @@ class ChickenCounter:
 
         for i, det in enumerate(detections):
             best_match = None
-            best_dist = float('inf')
+            best_dist = float("inf")
 
             for tid, info in self._tracks.items():
                 if tid in matched_old_ids:
                     continue
-                old_bbox = info['bbox']
+                old_bbox = info["bbox"]
                 dist = abs(det.bbox.x - old_bbox.x) + abs(det.bbox.y - old_bbox.y)
                 if dist < best_dist and dist < 200:
                     best_dist = dist
@@ -168,37 +171,52 @@ class ChickenCounter:
             if best_match is not None:
                 matched_old_ids.add(best_match)
                 matched_det_indices.add(i)
-                self._tracks[best_match]['bbox'] = det.bbox
-                self._tracks[best_match]['confidence'] = det.confidence
-                self._tracks[best_match]['last_seen'] = frame_id
-                new_tracks.append(TrackingResult(
-                    track_id=best_match, bbox=det.bbox,
-                    confidence=det.confidence, status="active"
-                ))
+                self._tracks[best_match]["bbox"] = det.bbox
+                self._tracks[best_match]["confidence"] = det.confidence
+                self._tracks[best_match]["last_seen"] = frame_id
+                new_tracks.append(
+                    TrackingResult(
+                        track_id=best_match,
+                        bbox=det.bbox,
+                        confidence=det.confidence,
+                        status="active",
+                    )
+                )
             else:
                 matched_det_indices.add(i)
                 tid = f"track-{self._next_track_id}"
                 self._next_track_id += 1
                 self._tracks[tid] = {
-                    'bbox': det.bbox, 'confidence': det.confidence,
-                    'last_seen': frame_id
+                    "bbox": det.bbox,
+                    "confidence": det.confidence,
+                    "last_seen": frame_id,
                 }
-                new_tracks.append(TrackingResult(
-                    track_id=tid, bbox=det.bbox,
-                    confidence=det.confidence, status="active"
-                ))
+                new_tracks.append(
+                    TrackingResult(
+                        track_id=tid,
+                        bbox=det.bbox,
+                        confidence=det.confidence,
+                        status="active",
+                    )
+                )
 
         for tid, info in self._tracks.items():
-            if tid not in matched_old_ids and info['last_seen'] != frame_id:
+            if tid not in matched_old_ids and info["last_seen"] != frame_id:
                 predicted = BoundingBox(
-                    x=info['bbox'].x, y=info['bbox'].y,
-                    width=info['bbox'].width, height=info['bbox'].height
+                    x=info["bbox"].x,
+                    y=info["bbox"].y,
+                    width=info["bbox"].width,
+                    height=info["bbox"].height,
                 )
-                new_tracks.append(TrackingResult(
-                    track_id=tid, bbox=info['bbox'],
-                    confidence=0.0, status="lost",
-                    predicted_position=predicted
-                ))
+                new_tracks.append(
+                    TrackingResult(
+                        track_id=tid,
+                        bbox=info["bbox"],
+                        confidence=0.0,
+                        status="lost",
+                        predicted_position=predicted,
+                    )
+                )
 
         return FrameResult(tracks=new_tracks)
 
@@ -214,26 +232,33 @@ class ChickenCounter:
             confidence = avg_conf
 
         low_alert = confidence < self.confidence_threshold
-        return CountResult(count=count, confidence=confidence,
-                           low_confidence_alert=low_alert, total_count=count)
+        return CountResult(
+            count=count,
+            confidence=confidence,
+            low_confidence_alert=low_alert,
+            total_count=count,
+        )
 
     def set_confidence_threshold(self, threshold: float):
         """Update the minimum confidence threshold for accepting detections."""
         self.confidence_threshold = threshold
 
-    def correlate_counts(self, indoor: CountResult, outdoor: CountResult,
-                         overlap_estimate: int = 0) -> CountResult:
+    def correlate_counts(
+        self, indoor: CountResult, outdoor: CountResult, overlap_estimate: int = 0
+    ) -> CountResult:
         """Combine indoor and outdoor counts, subtracting estimated overlap."""
         total = indoor.count + outdoor.count - overlap_estimate
         avg_conf = (indoor.confidence + outdoor.confidence) / 2
         return CountResult(count=total, confidence=avg_conf, total_count=total)
 
-    def detect_camera_transition(self, leaving_camera: str,
-                                  entering_camera: str,
-                                  track_id: str) -> CameraTransitionEvent:
+    def detect_camera_transition(
+        self, leaving_camera: str, entering_camera: str, track_id: str
+    ) -> CameraTransitionEvent:
         """Record a chicken transitioning between two camera views."""
         direction = f"{leaving_camera}_to_{entering_camera}"
         return CameraTransitionEvent(
-            leaving_camera=leaving_camera, entering_camera=entering_camera,
-            track_id=track_id, direction=direction
+            leaving_camera=leaving_camera,
+            entering_camera=entering_camera,
+            track_id=track_id,
+            direction=direction,
         )

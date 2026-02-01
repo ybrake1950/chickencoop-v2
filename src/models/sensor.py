@@ -5,7 +5,7 @@ This module provides models for sensor readings and batch operations.
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 from .base import BaseModel, ValidationError
 
@@ -55,7 +55,9 @@ class SensorReading(BaseModel):
         if timestamp:
             # Handle timestamp as string (ISO format) or datetime object
             if isinstance(timestamp, str):
-                self.timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                self.timestamp = datetime.fromisoformat(
+                    timestamp.replace("Z", "+00:00")
+                )
             else:
                 self.timestamp = timestamp
         else:
@@ -87,13 +89,9 @@ class SensorReading(BaseModel):
 
     def __hash__(self) -> int:
         """Generate hash based on sensor data for use in sets/dicts."""
-        return hash((
-            self.temperature,
-            self.humidity,
-            self.coop_id,
-            self.timestamp,
-            self.unit
-        ))
+        return hash(
+            (self.temperature, self.humidity, self.coop_id, self.timestamp, self.unit)
+        )
 
     def is_anomalous(self) -> bool:
         """Check if reading has anomalous values."""
@@ -127,7 +125,7 @@ class SensorReading(BaseModel):
             self.timestamp.strftime("%Y-%m-%d %H:%M:%S"),
             str(self.temperature),
             str(self.humidity),
-            self.coop_id
+            self.coop_id,
         )
 
     @classmethod
@@ -140,7 +138,7 @@ class SensorReading(BaseModel):
             coop_id=coop_id,
             timestamp=datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S").replace(
                 tzinfo=timezone.utc
-            )
+            ),
         )
 
 

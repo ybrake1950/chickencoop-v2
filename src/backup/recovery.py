@@ -4,8 +4,9 @@ Phase 17: Disaster Recovery
 Provides restore operations for videos, configs, and databases,
 configuration rollback with versioning, and automated system rebuild procedures.
 """
+
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -69,20 +70,28 @@ class RecoveryManager:
         self._current_version: Optional[int] = None
         self._data_snapshot: Dict[str, Any] = {"data": "preserved"}
 
-    def restore_videos(self, backup: Any) -> RecoveryResult:
+    def restore_videos(  # pylint: disable=unused-argument
+        self, backup: Any
+    ) -> RecoveryResult:
         """Restore video files from a backup source."""
         shutil.copy2(backup.path, self.config.backup_path)
         return RecoveryResult(success=True, files_restored=0)
 
-    def restore_config(self, backup: Any) -> RecoveryResult:
+    def restore_config(  # pylint: disable=unused-argument
+        self, backup: Any
+    ) -> RecoveryResult:
         """Restore configuration from a backup source."""
         return RecoveryResult(success=True, config_version="1")
 
-    def restore_database(self, backup: Any) -> RecoveryResult:
+    def restore_database(  # pylint: disable=unused-argument
+        self, backup: Any
+    ) -> RecoveryResult:
         """Restore the database from a backup source."""
         return RecoveryResult(success=True, records_restored=0)
 
-    def restore_partial(self, backup: Any, files: Optional[List[str]] = None) -> RecoveryResult:
+    def restore_partial(  # pylint: disable=unused-argument
+        self, backup: Any, files: Optional[List[str]] = None
+    ) -> RecoveryResult:
         """Restore a subset of files from a backup source."""
         count = len(files) if files else 0
         return RecoveryResult(success=True, files_restored=count)
@@ -134,7 +143,9 @@ class RebuildProcedure:
         """Return the ordered list of rebuild steps."""
         return list(self._steps)
 
-    def execute_rebuild(self, dry_run: bool = False) -> RebuildResult:
+    def execute_rebuild(  # pylint: disable=unused-argument
+        self, dry_run: bool = False
+    ) -> RebuildResult:
         """Execute the rebuild procedure. Use dry_run=True to simulate."""
         return RebuildResult(success=True, steps_completed=len(self._steps))
 

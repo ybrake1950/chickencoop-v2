@@ -3,7 +3,7 @@
 import enum
 import math
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List
 
 
 class StreamProtocol(enum.Enum):
@@ -49,7 +49,7 @@ class HLSProvider:
         self.target_segment_duration = segment_duration
         self._playlists: dict[str, HLSPlaylist] = {}
 
-    def generate_manifest(self, stream_id: str) -> str:
+    def generate_manifest(self, _stream_id: str) -> str:
         """Generate an HLS manifest (m3u8) header for the given stream."""
         return "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-TARGETDURATION:{}\n".format(
             self.target_segment_duration
@@ -60,7 +60,10 @@ class HLSProvider:
         count = max(1, math.ceil(duration / self.target_segment_duration))
         segments = []
         for i in range(count):
-            seg_dur = min(self.target_segment_duration, duration - i * self.target_segment_duration)
+            seg_dur = min(
+                self.target_segment_duration,
+                duration - i * self.target_segment_duration,
+            )
             segments.append(HLSSegment(index=i, duration_seconds=float(seg_dur)))
         if stream_id not in self._playlists:
             self._playlists[stream_id] = HLSPlaylist(stream_id=stream_id)
@@ -74,7 +77,11 @@ class HLSProvider:
         playlist = self._playlists[stream_id]
         idx = len(playlist.segments)
         playlist.segments.append(
-            HLSSegment(index=idx, duration_seconds=float(self.target_segment_duration), data=segment_data)
+            HLSSegment(
+                index=idx,
+                duration_seconds=float(self.target_segment_duration),
+                data=segment_data,
+            )
         )
 
     def get_playlist(self, stream_id: str) -> HLSPlaylist:
@@ -92,9 +99,13 @@ class WebRTCProvider:
 
     def gather_ice_candidates(self) -> List[ICECandidate]:
         """Gather ICE candidates for peer connection establishment."""
-        return [ICECandidate(candidate="candidate:1 1 udp 2130706431 127.0.0.1 5000 typ host")]
+        return [
+            ICECandidate(
+                candidate="candidate:1 1 udp 2130706431 127.0.0.1 5000 typ host"
+            )
+        ]
 
-    def connect(self, peer) -> PeerConnection:
+    def connect(self, _peer) -> PeerConnection:
         """Establish a WebRTC peer connection and return its state."""
         return PeerConnection(state="connected")
 
@@ -112,7 +123,11 @@ class ProtocolNegotiator:
         """Negotiate a streaming protocol, honoring the client's preference if available."""
         proto_map = {"hls": StreamProtocol.HLS, "webrtc": StreamProtocol.WEBRTC}
         preferred_proto = proto_map.get(preferred)
-        if preferred_proto and preferred_proto in self._available and preferred_proto not in self._disabled:
+        if (
+            preferred_proto
+            and preferred_proto in self._available
+            and preferred_proto not in self._disabled
+        ):
             return NegotiationResult(protocol=preferred_proto)
         for proto in self._available:
             if proto not in self._disabled:

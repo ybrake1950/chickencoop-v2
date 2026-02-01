@@ -1,7 +1,7 @@
 """Live streaming module for chicken coop monitoring."""
 
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import List, Optional
 
@@ -65,15 +65,17 @@ class StreamManager:
                 session_id=str(uuid.uuid4()),
                 camera=camera,
                 status=StreamStatus.ERROR,
-                error="Authentication required" if token is None else "Invalid or expired token",
+                error=(
+                    "Authentication required"
+                    if token is None
+                    else "Invalid or expired token"
+                ),
             )
             self._sessions[session.session_id] = session
             return session
 
         if self.config.per_coop:
-            active_for_coop = [
-                s for s in self.active_sessions if s.coop_id == coop_id
-            ]
+            active_for_coop = [s for s in self.active_sessions if s.coop_id == coop_id]
             count = len(active_for_coop)
         else:
             count = len(self.active_sessions)

@@ -10,7 +10,6 @@ from typing import Optional, List, Dict, Any
 
 class ValidationError(Exception):
     """Raised when validation fails."""
-    pass
 
 
 class VideoMetadata:
@@ -27,7 +26,7 @@ class VideoMetadata:
         retain_permanently: bool = False,
         retained_by_user_id: Optional[int] = None,
         retention_note: Optional[str] = None,
-        retained_at: Optional[datetime] = None
+        retained_at: Optional[datetime] = None,
     ):
         """Initialize video metadata.
 
@@ -57,8 +56,10 @@ class VideoMetadata:
 
     def validate(self):
         """Validate the video metadata."""
-        if self.camera not in ['indoor', 'outdoor']:
-            raise ValidationError(f"Camera must be 'indoor' or 'outdoor', got '{self.camera}'")
+        if self.camera not in ["indoor", "outdoor"]:
+            raise ValidationError(
+                f"Camera must be 'indoor' or 'outdoor', got '{self.camera}'"
+            )
 
     def mark_for_retention(self, user_id: int, note: str = ""):
         """Mark video for permanent retention."""
@@ -113,65 +114,65 @@ class VideoMetadata:
     def thumbnail_key(self) -> str:
         """Generate thumbnail S3 key from video key."""
         # Replace video extension with .jpg and add thumbnail prefix/suffix
-        base_key = self.s3_key.rsplit('.', 1)[0]
+        base_key = self.s3_key.rsplit(".", 1)[0]
         return f"{base_key}_thumbnail.jpg"
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialize to dictionary."""
         return {
-            'filename': self.filename,
-            's3_key': self.s3_key,
-            'camera': self.camera,
-            'upload_date': self.upload_date.isoformat() if self.upload_date else None,
-            'size_bytes': self.size_bytes,
-            'duration': self.duration,
-            'retain_permanently': self.retain_permanently,
-            'retained_by_user_id': self.retained_by_user_id,
-            'retention_note': self.retention_note,
-            'retained_at': self.retained_at.isoformat() if self.retained_at else None,
-            'has_thumbnail': self.has_thumbnail
+            "filename": self.filename,
+            "s3_key": self.s3_key,
+            "camera": self.camera,
+            "upload_date": self.upload_date.isoformat() if self.upload_date else None,
+            "size_bytes": self.size_bytes,
+            "duration": self.duration,
+            "retain_permanently": self.retain_permanently,
+            "retained_by_user_id": self.retained_by_user_id,
+            "retention_note": self.retention_note,
+            "retained_at": self.retained_at.isoformat() if self.retained_at else None,
+            "has_thumbnail": self.has_thumbnail,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'VideoMetadata':
+    def from_dict(cls, data: Dict[str, Any]) -> "VideoMetadata":
         """Create instance from dictionary."""
         # Convert ISO format strings back to datetime
-        upload_date = data.get('upload_date')
+        upload_date = data.get("upload_date")
         if isinstance(upload_date, str):
             upload_date = datetime.fromisoformat(upload_date)
 
-        retained_at = data.get('retained_at')
+        retained_at = data.get("retained_at")
         if isinstance(retained_at, str):
             retained_at = datetime.fromisoformat(retained_at)
 
         return cls(
-            filename=data['filename'],
-            s3_key=data['s3_key'],
-            camera=data['camera'],
+            filename=data["filename"],
+            s3_key=data["s3_key"],
+            camera=data["camera"],
             upload_date=upload_date,
-            size_bytes=data.get('size_bytes'),
-            duration=data.get('duration'),
-            retain_permanently=data.get('retain_permanently', False),
-            retained_by_user_id=data.get('retained_by_user_id'),
-            retention_note=data.get('retention_note'),
-            retained_at=retained_at
+            size_bytes=data.get("size_bytes"),
+            duration=data.get("duration"),
+            retain_permanently=data.get("retain_permanently", False),
+            retained_by_user_id=data.get("retained_by_user_id"),
+            retention_note=data.get("retention_note"),
+            retained_at=retained_at,
         )
 
     def to_api_response(self) -> Dict[str, Any]:
         """Format for API response."""
         return {
-            'filename': self.filename,
-            's3_key': self.s3_key,
-            'url': self.s3_key,
-            'camera': self.camera,
-            'upload_date': self.upload_date.isoformat() if self.upload_date else None,
-            'size': self.size_formatted,
-            'size_bytes': self.size_bytes,
-            'duration': self.duration_formatted if self.duration else None,
-            'duration_seconds': self.duration,
-            'thumbnail': self.thumbnail_key,
-            'thumbnail_url': self.thumbnail_key,
-            'retained': self.retain_permanently
+            "filename": self.filename,
+            "s3_key": self.s3_key,
+            "url": self.s3_key,
+            "camera": self.camera,
+            "upload_date": self.upload_date.isoformat() if self.upload_date else None,
+            "size": self.size_formatted,
+            "size_bytes": self.size_bytes,
+            "duration": self.duration_formatted if self.duration else None,
+            "duration_seconds": self.duration,
+            "thumbnail": self.thumbnail_key,
+            "thumbnail_url": self.thumbnail_key,
+            "retained": self.retain_permanently,
         }
 
 
@@ -194,12 +195,12 @@ class VideoList:
         """Get video by index."""
         return self._videos[index]
 
-    def filter_by_camera(self, camera: str) -> 'VideoList':
+    def filter_by_camera(self, camera: str) -> "VideoList":
         """Filter videos by camera type."""
         filtered = [v for v in self._videos if v.camera == camera]
         return VideoList(filtered)
 
-    def filter_retained(self) -> 'VideoList':
+    def filter_retained(self) -> "VideoList":
         """Filter to only retained videos."""
         filtered = [v for v in self._videos if v.retain_permanently]
         return VideoList(filtered)
@@ -209,11 +210,9 @@ class VideoList:
         """Calculate total size of all videos."""
         return sum(v.size_bytes or 0 for v in self._videos)
 
-    def sort_by_date(self, ascending: bool = True) -> 'VideoList':
+    def sort_by_date(self, ascending: bool = True) -> "VideoList":
         """Sort videos by upload date."""
         sorted_videos = sorted(
-            self._videos,
-            key=lambda v: v.upload_date,
-            reverse=not ascending
+            self._videos, key=lambda v: v.upload_date, reverse=not ascending
         )
         return VideoList(sorted_videos)

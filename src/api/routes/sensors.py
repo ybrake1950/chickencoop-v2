@@ -26,20 +26,22 @@ def register_routes(app):
         app: The Flask application instance to register routes with.
     """
 
-    @app.route('/api/status')
+    @app.route("/api/status")
     def api_status():
         """Get the current sensor status with temperature and humidity.
 
         Returns:
             tuple: JSON response with temperature, humidity, and timestamp.
         """
-        return jsonify({
-            "temperature": 72.5,
-            "humidity": 65.0,
-            "timestamp": datetime.now(timezone.utc).isoformat()
-        })
+        return jsonify(
+            {
+                "temperature": 72.5,
+                "humidity": 65.0,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            }
+        )
 
-    @app.route('/api/sensor-data')
+    @app.route("/api/sensor-data")
     def api_sensor_data():
         """Get sensor data with optional filtering by range and coop.
 
@@ -51,13 +53,11 @@ def register_routes(app):
             tuple: JSON response with sensor data array.
         """
         # Query params are accepted but filtering is minimal for now
-        _ = request.args.get('range')
-        _ = request.args.get('coop')
-        return jsonify({
-            "data": []
-        })
+        _ = request.args.get("range")
+        _ = request.args.get("coop")
+        return jsonify({"data": []})
 
-    @app.route('/api/alerts')
+    @app.route("/api/alerts")
     def api_alerts():
         """Get the list of current active alerts.
 
@@ -65,11 +65,9 @@ def register_routes(app):
             tuple: JSON response with alerts array.
         """
         alerts = get_alerts()
-        return jsonify({
-            "alerts": alerts
-        })
+        return jsonify({"alerts": alerts})
 
-    @app.route('/api/download-csv')
+    @app.route("/api/download-csv")
     def api_download_csv():
         """Download sensor data as a CSV file.
 
@@ -78,13 +76,13 @@ def register_routes(app):
         Returns:
             Response: CSV file download or 401 if not authenticated.
         """
-        if 'user_id' not in session:
+        if "user_id" not in session:
             return Response("Unauthorized", status=401)
 
         csv_content = "timestamp,temperature,humidity,coop_id\n"
         return Response(
             csv_content,
             status=200,
-            mimetype='text/csv',
-            headers={"Content-Disposition": "attachment;filename=sensor_data.csv"}
+            mimetype="text/csv",
+            headers={"Content-Disposition": "attachment;filename=sensor_data.csv"},
         )

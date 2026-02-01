@@ -13,6 +13,7 @@ from typing import List, Optional
 
 class AlertChannel(Enum):
     """Notification channels for alerts."""
+
     SNS = "sns"
     SLACK = "slack"
     EMAIL = "email"
@@ -22,6 +23,7 @@ class AlertChannel(Enum):
 @dataclass
 class RoutingRule:
     """A rule mapping an alert type to channels."""
+
     alert_type: str
     channels: List[AlertChannel] = field(default_factory=list)
 
@@ -29,12 +31,14 @@ class RoutingRule:
 @dataclass
 class RoutingConfig:
     """Configuration for the alert router."""
+
     rules: List[RoutingRule] = field(default_factory=list)
 
 
 @dataclass
 class UserPreferences:
     """Per-user routing preferences."""
+
     channels: List[AlertChannel] = field(default_factory=list)
     alert_types: List[str] = field(default_factory=list)
     quiet_hours_start: Optional[time] = None
@@ -44,6 +48,7 @@ class UserPreferences:
 @dataclass
 class RouteResult:
     """Result of routing an alert."""
+
     channels: List[AlertChannel] = field(default_factory=list)
     queued: bool = False
     suppressed: bool = False
@@ -103,7 +108,9 @@ class AlertRouter:
 
         return channels
 
-    def set_severity_channels(self, severity: str, channels: List[AlertChannel]) -> None:
+    def set_severity_channels(
+        self, severity: str, channels: List[AlertChannel]
+    ) -> None:
         """Configure channels for a severity level."""
         self._severity_channels[severity] = channels
 
@@ -145,7 +152,11 @@ class AlertRouter:
         """Route an alert and return the result."""
         channels = self.get_channels(alert_type, severity, current_time)
 
-        if current_time is not None and self._is_quiet_hours(current_time) and severity != "critical":
+        if (
+            current_time is not None
+            and self._is_quiet_hours(current_time)
+            and severity != "critical"
+        ):
             return RouteResult(channels=[], queued=True, suppressed=True)
 
         return RouteResult(channels=channels)

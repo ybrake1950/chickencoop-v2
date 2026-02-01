@@ -4,7 +4,7 @@ Time utilities for the chickencoop project.
 Provides consistent UTC time handling, formatting, and date calculations.
 """
 
-from datetime import datetime, date, time, timezone, timedelta
+from datetime import datetime, time, timezone, timedelta
 
 
 def now_utc():
@@ -236,8 +236,8 @@ def parse_schedule_time(time_str):
     try:
         hour, minute = time_str.split(":")
         return time(int(hour), int(minute))
-    except (ValueError, AttributeError):
-        raise ValueError(f"Invalid time format: {time_str}")
+    except (ValueError, AttributeError) as exc:
+        raise ValueError(f"Invalid time format: {time_str}") from exc
 
 
 def get_next_scheduled_time(schedule):
@@ -254,10 +254,7 @@ def get_next_scheduled_time(schedule):
     """
     now = datetime.now(timezone.utc)
     scheduled = now.replace(
-        hour=schedule.hour,
-        minute=schedule.minute,
-        second=0,
-        microsecond=0
+        hour=schedule.hour, minute=schedule.minute, second=0, microsecond=0
     )
     if scheduled <= now:
         scheduled += timedelta(days=1)

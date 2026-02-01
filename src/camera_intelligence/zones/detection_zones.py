@@ -1,13 +1,14 @@
 """Detection zones for configurable motion detection areas."""
 
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional, Tuple
 
 
 class ZoneType(Enum):
     """Types of detection zones."""
+
     RECTANGLE = "rectangle"
     POLYGON = "polygon"
     EXCLUSION = "exclusion"
@@ -16,12 +17,14 @@ class ZoneType(Enum):
 @dataclass
 class ZoneConfig:
     """Configuration for a detection zone."""
+
     sensitivity: float = 0.5
 
 
 @dataclass
 class DetectionZone:
     """A detection zone within a camera view."""
+
     zone_id: str
     name: str
     zone_type: ZoneType
@@ -33,6 +36,7 @@ class DetectionZone:
 @dataclass
 class MotionResult:
     """Result of a motion check."""
+
     detected: bool
     excluded: bool = False
     highlight_region: Optional[Dict[str, Any]] = None
@@ -41,6 +45,7 @@ class MotionResult:
 @dataclass
 class PointResult:
     """Result of a point check against zones."""
+
     excluded: bool = False
 
 

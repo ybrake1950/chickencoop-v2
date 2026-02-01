@@ -7,8 +7,8 @@ optimization suggestions, and capacity planning.
 """
 
 import statistics
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
 
 
 @dataclass
@@ -60,7 +60,9 @@ class BaselineCalculator:
         self._samples: Dict[str, List[float]] = {}
         self._cache: Dict[str, BaselineResult] = {}
 
-    def add_samples(self, operation: str, samples: List[float], exclude_outliers: bool = False):
+    def add_samples(
+        self, operation: str, samples: List[float], exclude_outliers: bool = False
+    ):
         """Add performance samples for a given operation, optionally filtering outliers."""
         if exclude_outliers:
             samples = self._remove_outliers(samples)
@@ -135,13 +137,20 @@ class AnomalyDetector:
         if not is_anomaly:
             return AnomalyResult(is_anomaly=False, deviation=deviation)
 
-        self._occurrence_counts[operation] = self._occurrence_counts.get(operation, 0) + 1
+        self._occurrence_counts[operation] = (
+            self._occurrence_counts.get(operation, 0) + 1
+        )
 
         alert_suppressed = False
-        if self._debounce_enabled and self._occurrence_counts[operation] < self._min_occurrences:
+        if (
+            self._debounce_enabled
+            and self._occurrence_counts[operation] < self._min_occurrences
+        ):
             alert_suppressed = True
 
-        severity = "critical" if abs(deviation) > self.threshold_stddev * 2 else "warning"
+        severity = (
+            "critical" if abs(deviation) > self.threshold_stddev * 2 else "warning"
+        )
         alert = None if alert_suppressed else AnomalyAlert(severity=severity)
 
         return AnomalyResult(
@@ -152,7 +161,7 @@ class AnomalyDetector:
         )
 
 
-_METRIC_RULES = {
+_METRIC_RULES: Dict[str, Dict[str, Any]] = {
     "upload_time": {
         "threshold": 3000,
         "unit": "ms",
@@ -187,12 +196,14 @@ class OptimizationAdvisor:
     def get_suggestions(self) -> List[Suggestion]:
         """Return prioritized optimization suggestions based on reported metrics."""
         suggestions: List[Suggestion] = []
-        for name, value, unit in self._metrics:
+        for name, value, _unit in self._metrics:
             rule = _METRIC_RULES.get(name)
-            if rule and value >= rule["threshold"]:
-                excess = (value - rule["threshold"]) / rule["threshold"]
-                priority = rule["base_priority"] + int(excess * 3)
-                suggestions.append(Suggestion(description=rule["description"], priority=priority))
+            if rule and value >= float(rule["threshold"]):
+                excess = (value - float(rule["threshold"])) / float(rule["threshold"])
+                priority = int(rule["base_priority"]) + int(excess * 3)
+                suggestions.append(
+                    Suggestion(description=str(rule["description"]), priority=priority)
+                )
         suggestions.sort(key=lambda s: s.priority, reverse=True)
         return suggestions
 
@@ -242,10 +253,10 @@ class CapacityPlanner:
         data = self._usage.get(metric)
         if max_val is None or not data or len(data) < 2:
             return None
-        slope, intercept = self._linear_fit(data)
+        slope, _intercept = self._linear_fit(data)
         if slope <= 0:
             return None
-        last_week = data[-1][0]
+        _last_week = data[-1][0]
         current_val = data[-1][1]
         weeks_until_full = (max_val - current_val) / slope
         severity = "critical" if weeks_until_full <= 4 else "warning"
@@ -258,7 +269,7 @@ class CapacityPlanner:
         sum_y = sum(d[1] for d in data)
         sum_xy = sum(d[0] * d[1] for d in data)
         sum_x2 = sum(d[0] ** 2 for d in data)
-        denom = n * sum_x2 - sum_x ** 2
+        denom = n * sum_x2 - sum_x**2
         if denom == 0:
             return 0.0, sum_y / n
         slope = (n * sum_xy - sum_x * sum_y) / denom

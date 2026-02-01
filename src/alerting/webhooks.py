@@ -10,7 +10,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 logger = logging.getLogger(__name__)
 
@@ -78,14 +78,22 @@ class WebhookNotifier:
                     self.config.url,
                     json=payload,
                     headers=self.config.headers,
+                    timeout=30,
                 )
                 if response.ok:
                     return WebhookResult(success=True, status_code=response.status_code)
                 if 400 <= response.status_code < 500:
-                    logger.warning("Webhook failed with client error %d", response.status_code)
-                    return WebhookResult(success=False, status_code=response.status_code)
+                    logger.warning(
+                        "Webhook failed with client error %d", response.status_code
+                    )
+                    return WebhookResult(
+                        success=False, status_code=response.status_code
+                    )
                 # 5xx — retry
-                logger.warning("Webhook failed with server error %d, retrying", response.status_code)
+                logger.warning(
+                    "Webhook failed with server error %d, retrying",
+                    response.status_code,
+                )
                 if attempt < max_retries - 1:
                     time.sleep(delays[attempt])
             except requests.exceptions.Timeout:
@@ -101,7 +109,7 @@ class WebhookNotifier:
 
     def get_retry_delays(self, max_retries: int = 3) -> List[float]:
         """Return exponential backoff delays in seconds for each retry attempt."""
-        return [0.1 * (2 ** i) for i in range(max_retries)]
+        return [0.1 * (2**i) for i in range(max_retries)]
 
 
 class SlackNotifier:
@@ -124,9 +132,13 @@ class SlackNotifier:
         if "type" in alert:
             fields.append({"title": "Type", "value": alert["type"], "short": True})
         if "value" in alert:
-            fields.append({"title": "Value", "value": str(alert["value"]), "short": True})
+            fields.append(
+                {"title": "Value", "value": str(alert["value"]), "short": True}
+            )
         if "timestamp" in alert:
-            fields.append({"title": "Timestamp", "value": alert["timestamp"], "short": False})
+            fields.append(
+                {"title": "Timestamp", "value": alert["timestamp"], "short": False}
+            )
 
         return {
             "attachments": [
@@ -140,11 +152,11 @@ class SlackNotifier:
             ]
         }
 
-    def send(self, alert: Dict[str, Any], max_retries: int = 1) -> WebhookResult:
+    def send(self, alert: Dict[str, Any], _max_retries: int = 1) -> WebhookResult:
         """Send an alert to Slack via incoming webhook."""
         payload = self.format_message(alert)
         try:
-            response = requests.post(self.webhook_url, json=payload)
+            response = requests.post(self.webhook_url, json=payload, timeout=30)
             return WebhookResult(success=response.ok, status_code=response.status_code)
         except requests.exceptions.RequestException as exc:
             logger.warning("Slack webhook failed: %s", exc)
@@ -169,11 +181,17 @@ class DiscordNotifier:
         color = self.SEVERITY_COLORS.get(severity, 0x439FE0)
         embed_fields = []
         if "type" in alert:
-            embed_fields.append({"name": "Type", "value": alert["type"], "inline": True})
+            embed_fields.append(
+                {"name": "Type", "value": alert["type"], "inline": True}
+            )
         if "value" in alert:
-            embed_fields.append({"name": "Value", "value": str(alert["value"]), "inline": True})
+            embed_fields.append(
+                {"name": "Value", "value": str(alert["value"]), "inline": True}
+            )
         if "timestamp" in alert:
-            embed_fields.append({"name": "Timestamp", "value": alert["timestamp"], "inline": False})
+            embed_fields.append(
+                {"name": "Timestamp", "value": alert["timestamp"], "inline": False}
+            )
 
         return {
             "embeds": [
@@ -186,11 +204,11 @@ class DiscordNotifier:
             ]
         }
 
-    def send(self, alert: Dict[str, Any], max_retries: int = 1) -> WebhookResult:
+    def send(self, alert: Dict[str, Any], _max_retries: int = 1) -> WebhookResult:
         """Send an alert to Discord via incoming webhook."""
         payload = self.format_message(alert)
         try:
-            response = requests.post(self.webhook_url, json=payload)
+            response = requests.post(self.webhook_url, json=payload, timeout=30)
             return WebhookResult(success=response.ok, status_code=response.status_code)
         except requests.exceptions.RequestException as exc:
             logger.warning("Discord webhook failed: %s", exc)

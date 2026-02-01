@@ -8,11 +8,12 @@ from .base import BaseSensor
 from .interface import SensorReadError
 
 try:
-    import smbus2
+    import smbus2  # pylint: disable=unused-import
     import adafruit_ahtx0
+
     HAS_HARDWARE = True
 except ImportError:
-    smbus2 = None
+    smbus2 = None  # noqa: F841
     adafruit_ahtx0 = None
     HAS_HARDWARE = False
 
@@ -24,7 +25,7 @@ class TemperatureSensor(BaseSensor):
     Supports both Fahrenheit and Celsius readings.
     """
 
-    def __init__(self, unit: str = "fahrenheit", bus_number: int = 1):
+    def __init__(self, unit: str = "fahrenheit", _bus_number: int = 1):
         """
         Initialize temperature sensor.
 
@@ -40,9 +41,10 @@ class TemperatureSensor(BaseSensor):
             try:
                 import board
                 import busio
+
                 i2c = busio.I2C(board.SCL, board.SDA)
                 self._sensor = adafruit_ahtx0.AHTx0(i2c)
-            except Exception:
+            except OSError:
                 # If hardware initialization fails, leave _sensor as None
                 pass
 
@@ -67,10 +69,10 @@ class TemperatureSensor(BaseSensor):
             if self.unit == "celsius":
                 return float(temp_celsius)
             else:  # fahrenheit (default)
-                return float((temp_celsius * 9/5) + 32)
+                return float((temp_celsius * 9 / 5) + 32)
 
         except (IOError, OSError, AttributeError, TypeError) as e:
-            raise SensorReadError(f"Failed to read temperature: {e}")
+            raise SensorReadError(f"Failed to read temperature: {e}") from e
 
     def is_available(self) -> bool:
         """Check if temperature sensor is available."""

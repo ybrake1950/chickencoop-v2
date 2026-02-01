@@ -62,7 +62,7 @@ class VideoRepository:
                 video_data.get("duration"),
                 video_data.get("size_bytes"),
                 video_data.get("upload_date"),
-            )
+            ),
         )
         self._db.connection.commit()
         return cursor.lastrowid

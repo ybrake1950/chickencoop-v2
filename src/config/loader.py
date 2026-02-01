@@ -8,7 +8,7 @@ merging base and device-specific configurations.
 import json
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 
 def load_config(path: Path) -> Dict[str, Any]:
@@ -153,7 +153,7 @@ _config_instance = None
 
 def get_config() -> ConfigLoader:
     """Get or create a singleton ConfigLoader instance."""
-    global _config_instance
+    global _config_instance  # pylint: disable=global-statement
     if _config_instance is None:
         _config_instance = ConfigLoader()
     return _config_instance

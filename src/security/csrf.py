@@ -10,12 +10,14 @@ from typing import Optional
 @dataclass
 class CSRFToken:
     """A CSRF token."""
+
     value: str
 
 
 @dataclass
 class CSRFValidationResult:
     """Result of CSRF validation."""
+
     valid: bool
     error: str = ""
 
@@ -39,7 +41,7 @@ class CSRFProtection:
         self._tokens[session_id] = token_value
         return CSRFToken(value=token_value)
 
-    def validate_request(
+    def validate_request(  # pylint: disable=unused-argument
         self,
         method: str,
         token: Optional[str],

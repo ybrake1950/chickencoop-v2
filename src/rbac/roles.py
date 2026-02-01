@@ -7,6 +7,7 @@ from typing import Dict, List, Optional
 @dataclass
 class Role:
     """A named role with a description."""
+
     name: str
     description: str
     level: int = 0
@@ -15,6 +16,7 @@ class Role:
 @dataclass
 class RoleAssignment:
     """Tracks a role assigned to a user."""
+
     user_id: str
     role_name: str
 
@@ -22,6 +24,7 @@ class RoleAssignment:
 @dataclass
 class UserRole:
     """A user's role entry."""
+
     user_id: str
     roles: List[str] = field(default_factory=list)
 
@@ -65,9 +68,7 @@ class RoleManager:
         """
         if assigned_by_role is not None:
             if assigned_by_role not in ("admin", "owner"):
-                raise PermissionError(
-                    "Only admin or owner can assign roles"
-                )
+                raise PermissionError("Only admin or owner can assign roles")
 
         if user_id not in self._user_roles:
             self._user_roles[user_id] = []

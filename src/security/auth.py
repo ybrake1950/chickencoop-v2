@@ -12,6 +12,7 @@ from typing import List, Optional
 @dataclass
 class AuthResult:
     """Result of an authentication attempt."""
+
     authenticated: bool
     user_id: str = ""
     http_status_code: int = 200
@@ -46,7 +47,11 @@ class TokenValidator:
         try:
             parts = token.split(".")
             if len(parts) != 2:
-                return AuthResult(authenticated=False, http_status_code=401, error="Invalid token format")
+                return AuthResult(
+                    authenticated=False,
+                    http_status_code=401,
+                    error="Invalid token format",
+                )
 
             payload_bytes, signature = parts
             expected_sig = hmac.new(
@@ -56,16 +61,28 @@ class TokenValidator:
             ).hexdigest()
 
             if not hmac.compare_digest(signature, expected_sig):
-                return AuthResult(authenticated=False, http_status_code=401, error="Invalid token signature")
+                return AuthResult(
+                    authenticated=False,
+                    http_status_code=401,
+                    error="Invalid token signature",
+                )
 
             payload = json.loads(base64.urlsafe_b64decode(payload_bytes.encode()))
 
             if payload.get("exp", 0) < time.time():
-                return AuthResult(authenticated=False, http_status_code=401, error="Token expired")
+                return AuthResult(
+                    authenticated=False, http_status_code=401, error="Token expired"
+                )
 
-            return AuthResult(authenticated=True, user_id=payload.get("user_id", ""), http_status_code=200)
-        except Exception:
-            return AuthResult(authenticated=False, http_status_code=401, error="Invalid token")
+            return AuthResult(
+                authenticated=True,
+                user_id=payload.get("user_id", ""),
+                http_status_code=200,
+            )
+        except (ValueError, KeyError, TypeError):
+            return AuthResult(
+                authenticated=False, http_status_code=401, error="Invalid token"
+            )
 
     def refresh_token(self, old_token: str) -> Optional[str]:
         """Issue a new token if the old token has a valid signature."""
@@ -88,7 +105,7 @@ class TokenValidator:
                 user_id = payload.get("user_id")
                 if user_id:
                     return self.generate_token(user_id)
-            except Exception:
+            except (ValueError, KeyError, TypeError):
                 return None
             return None
         return self.generate_token(result.user_id)
@@ -97,7 +114,11 @@ class TokenValidator:
 class AuthenticationMiddleware:
     """Authentication middleware for protecting routes."""
 
-    def __init__(self, token_validator: TokenValidator, protected_paths: Optional[List[str]] = None):
+    def __init__(
+        self,
+        token_validator: TokenValidator,
+        protected_paths: Optional[List[str]] = None,
+    ):
         self._validator = token_validator
         self._protected_paths = protected_paths or []
 
@@ -108,5 +129,9 @@ class AuthenticationMiddleware:
     def authenticate(self, token: Optional[str]) -> AuthResult:
         """Authenticate a request using the provided token."""
         if token is None:
-            return AuthResult(authenticated=False, http_status_code=401, error="Authentication required")
+            return AuthResult(
+                authenticated=False,
+                http_status_code=401,
+                error="Authentication required",
+            )
         return self._validator.validate_token(token)

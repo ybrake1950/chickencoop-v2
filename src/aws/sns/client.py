@@ -9,12 +9,10 @@ import boto3
 
 class SNSPublishError(Exception):
     """Raised when SNS publish operation fails."""
-    pass
 
 
 class InvalidEmailError(Exception):
     """Raised when email format is invalid."""
-    pass
 
 
 _sns_client_instance = None
@@ -22,14 +20,16 @@ _sns_client_instance = None
 
 def get_sns_client(config: Optional[Dict[str, Any]] = None) -> "SNSClient":
     """Get or create a singleton SNSClient instance."""
-    global _sns_client_instance
+    global _sns_client_instance  # pylint: disable=global-statement
     if _sns_client_instance is None:
         if config is None:
             config = {
                 "region": os.environ.get("AWS_REGION", "us-east-1"),
                 "sns": {
-                    "topic_arn": os.environ.get("SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:000000000000:default")
-                }
+                    "topic_arn": os.environ.get(
+                        "SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:000000000000:default"
+                    )
+                },
             }
         _sns_client_instance = SNSClient(config)
     return _sns_client_instance
@@ -82,12 +82,10 @@ class SNSClient:
         """
         try:
             response = self._client.subscribe(
-                TopicArn=self.topic_arn,
-                Protocol=protocol,
-                Endpoint=endpoint
+                TopicArn=self.topic_arn, Protocol=protocol, Endpoint=endpoint
             )
             return response.get("SubscriptionArn")
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             return None
 
     def publish_alert(self, subject: str, message: str) -> Dict[str, str]:
@@ -106,15 +104,13 @@ class SNSClient:
         """
         try:
             response = self._client.publish(
-                TopicArn=self.topic_arn,
-                Subject=subject,
-                Message=message
+                TopicArn=self.topic_arn, Subject=subject, Message=message
             )
             return {"message_id": response["MessageId"]}
         except Exception as e:
             raise SNSPublishError(f"Failed to publish alert: {e}") from e
 
-    def publish_temperature_alert(
+    def publish_temperature_alert(  # pylint: disable=unused-argument
         self, coop_id: str, temperature: float, threshold: float
     ) -> Dict[str, str]:
         """
@@ -200,12 +196,10 @@ class SNSClient:
             raise InvalidEmailError(f"Invalid email format: {email}")
         try:
             response = self._client.subscribe(
-                TopicArn=self.topic_arn,
-                Protocol="email",
-                Endpoint=email
+                TopicArn=self.topic_arn, Protocol="email", Endpoint=email
             )
             return response.get("SubscriptionArn")
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             return None
 
     def get_subscription_status(self, email: str) -> Optional[str]:

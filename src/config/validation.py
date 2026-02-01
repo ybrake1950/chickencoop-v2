@@ -6,7 +6,6 @@ from typing import Any, Dict
 
 class ConfigValidationError(Exception):
     """Raised when configuration validation fails."""
-    pass
 
 
 def validate_config(config: Dict[str, Any]) -> bool:
@@ -52,7 +51,9 @@ def validate_sensor_config(config: Dict[str, Any]) -> bool:
 
     temp = config.get("temperature", {})
     if temp.get("min_threshold", 0) >= temp.get("max_threshold", 1):
-        raise ConfigValidationError("temperature min_threshold must be less than max_threshold")
+        raise ConfigValidationError(
+            "temperature min_threshold must be less than max_threshold"
+        )
 
     humidity = config.get("humidity", {})
     min_h = humidity.get("min_threshold", 0)
@@ -141,7 +142,7 @@ def validate_aws_config(config: Dict[str, Any]) -> bool:
     s3 = config.get("s3", {})
     bucket = s3.get("bucket", "")
     if bucket:
-        if not re.match(r'^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$', bucket):
+        if not re.match(r"^[a-z0-9][a-z0-9.-]{1,61}[a-z0-9]$", bucket):
             raise ConfigValidationError("Invalid S3 bucket name format")
 
     sns = config.get("sns", {})

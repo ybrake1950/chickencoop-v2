@@ -7,6 +7,7 @@ This document provides a comprehensive catalog of all TDD test scripts, describi
 
 ---
 
+
 ## Table of Contents
 
 1. [Phase 1: Foundation](#phase-1-foundation)
@@ -27,7 +28,8 @@ This document provides a comprehensive catalog of all TDD test scripts, describi
 16. [Phase 16: Multi-Camera Intelligence](#phase-16-multi-camera-intelligence)
 17. [Phase 17: Backup & Disaster Recovery](#phase-17-backup--disaster-recovery)
 18. [Phase 18: Performance & Observability](#phase-18-performance--observability)
-19. [Phase 19: Production Readiness](#phase-19-production-readiness)
+19. [Phase 18.1: TDD Refactoring](#phase-181-tdd-refactoring)
+20. [Phase 19: Production Readiness](#phase-19-production-readiness)
 20. [Phase 20: Test Suite Completeness](#phase-20-test-suite-completeness)
 21. [Phase 21: Configuration & Environment](#phase-21-configuration--environment)
 22. [Phase 22: Infrastructure Provisioning](#phase-22-infrastructure-provisioning)
@@ -38,6 +40,8 @@ This document provides a comprehensive catalog of all TDD test scripts, describi
 27. [Phase 27: Pre-Launch Verification](#phase-27-pre-launch-verification)
 28. [Phase 28: Documentation](#phase-28-documentation)
 29. [Functionality Coverage Matrix](#functionality-coverage-matrix)
+30. [Production Readiness Coverage Matrix](#production-readiness-coverage-matrix)
+31. [Running the Complete Test Suite](#running-the-complete-test-suite)
 
 ---
 
@@ -683,85 +687,9 @@ pytest tdd/phase5_api/routes/test_sensor_routes.py -v
 | `test_sensor_data_with_time_range` | Verify filtering |
 | `test_csv_has_correct_content_type` | Verify file download |
 
----
-
-## Phase 7: Integration & E2E
-
-Phase 7 tests **complete system flows** across multiple components.
-
-### 7.1 Sensor to Cloud (`test_sensor_to_cloud.py`)
-
-**Functionality Being Tested:**
-- Sensor reading → CSV storage flow
-- Sensor reading → SQLite storage flow
-- Sensor reading → IoT Core publish flow
-- Sensor reading → S3 backup flow
-- Alert generation for threshold violations
-- Complete sensor pipeline end-to-end
-
-**Why This Matters:**
-Integration tests verify that all components work together correctly. A sensor reading should flow through storage, IoT, and alert systems.
-
-**How Tests Are Executed:**
-
-```bash
-pytest tdd/phase7_integration/system/test_sensor_to_cloud.py -v
-```
-
-**Test Execution Flow:**
-1. Tests configure all mocked components
-2. Sensor service processes a reading
-3. Verification that all systems received data
-4. Alert verification for threshold violations
-
-**Key Test Cases:**
-| Test | Purpose |
-|------|---------|
-| `test_sensor_reading_saved_to_csv` | Verify local storage |
-| `test_sensor_reading_published_to_iot` | Verify cloud publish |
-| `test_high_temperature_triggers_alert` | Verify alert system |
-| `test_complete_sensor_pipeline` | Verify full flow |
 
 ---
 
-### 7.2 User Flows (`test_user_flows.py`)
-
-**Functionality Being Tested:**
-- Complete login → dashboard flow
-- Logout and session clearing
-- Password reset flow
-- Video viewing and retention
-- Chicken registration and management
-- Alert subscription
-- Headcount viewing and manual trigger
-
-**Why This Matters:**
-E2E tests verify the complete user experience. They catch issues that unit tests miss, like navigation problems or data display errors.
-
-**How Tests Are Executed:**
-
-```bash
-pytest tdd/phase7_integration/e2e/test_user_flows.py -v
-```
-
-**Test Execution Flow:**
-1. Tests simulate complete user journeys
-2. Multiple HTTP requests in sequence
-3. Session state maintained across requests
-4. Final state verified
-
-**Key Test Cases:**
-| Test | Purpose |
-|------|---------|
-| `test_user_can_login_and_access_dashboard` | Verify auth flow |
-| `test_user_can_view_video_list` | Verify video access |
-| `test_user_can_register_chicken` | Verify registry |
-| `test_user_can_subscribe_to_alerts` | Verify SNS flow |
-| `test_user_can_trigger_manual_headcount` | Verify headcount |
-
----
-
-## Phase 5 (Continued): Additional API Routes
 
 ### 5.3 Settings Routes (`test_settings_routes.py`)
 
@@ -995,238 +923,83 @@ cd webapp && npm test -- iot
 | `test_reconnect_on_disconnect` | Connection resilience |
 | `test_parse_json_message` | Message handling |
 
+
 ---
 
-## Functionality Coverage Matrix
+## Phase 7: Integration & E2E
 
-This matrix maps **all application pages** to test coverage:
+Phase 7 tests **complete system flows** across multiple components.
 
-### Dashboard Page Features
-| Feature | Test File(s) | Status |
-|---------|--------------|--------|
-| Coop selection toggle | test_dashboard_page.py | ✅ |
-| Manual refresh controls | test_dashboard_page.py | ✅ |
-| System status (online/offline) | test_dashboard_page.py | ✅ |
-| Temperature display | test_dashboard_page.py | ✅ |
-| Humidity display | test_dashboard_page.py | ✅ |
-| Door status | test_dashboard_page.py | ✅ |
-| Check door button | test_dashboard_page.py | ✅ |
-| Trend indicators | test_dashboard_page.py | ✅ |
-| Threshold violation highlight | test_dashboard_page.py | ✅ |
-| Live camera streaming | test_dashboard_page.py | ✅ |
-| Sensor data charts | test_dashboard_page.py | ✅ |
-| Time range selection (6h-30d) | test_dashboard_page.py | ✅ |
-| Chart statistics (min/max/avg) | test_dashboard_page.py | ✅ |
-| Video grid | test_dashboard_page.py | ✅ |
-| Video filters (camera/date/sort) | test_dashboard_page.py | ✅ |
-| Video pagination | test_dashboard_page.py | ✅ |
-| Manual record button | test_dashboard_page.py | ✅ |
-| Data export CSV | test_dashboard_page.py | ✅ |
+### 7.1 Sensor to Cloud (`test_sensor_to_cloud.py`)
 
-### Chickens Page Features
-| Feature | Test File(s) | Status |
-|---------|--------------|--------|
-| Chicken statistics cards | test_chicken_routes.py | ✅ |
-| Chicken registry list | test_chicken_routes.py | ✅ |
-| Add chicken form | test_chicken_routes.py | ✅ |
-| Edit chicken modal | test_chicken_routes.py | ✅ |
-| Deactivate chicken | test_chicken_routes.py | ✅ |
-| Chicken card display | test_chicken_models.py | ✅ |
+**Functionality Being Tested:**
+- Sensor reading → CSV storage flow
+- Sensor reading → SQLite storage flow
+- Sensor reading → IoT Core publish flow
+- Sensor reading → S3 backup flow
+- Alert generation for threshold violations
+- Complete sensor pipeline end-to-end
 
-### Headcount Page Features
-| Feature | Test File(s) | Status |
-|---------|--------------|--------|
-| Latest headcount display | test_headcount_routes.py | ✅ |
-| Circular progress indicator | test_headcount_routes.py | ✅ |
-| Confidence percentage | test_headcount_routes.py | ✅ |
-| Detection method display | test_headcount_routes.py | ✅ |
-| Headcount statistics | test_headcount_routes.py | ✅ |
-| Success rate | test_headcount_routes.py | ✅ |
-| Current streak | test_headcount_routes.py | ✅ |
-| Historical log (30 records) | test_headcount_routes.py | ✅ |
-| Headcount chart | test_headcount_routes.py | ✅ |
-| Manual headcount trigger | test_headcount_routes.py | ✅ |
+**Why This Matters:**
+Integration tests verify that all components work together correctly. A sensor reading should flow through storage, IoT, and alert systems.
 
-### Alerts Page Features
-| Feature | Test File(s) | Status |
-|---------|--------------|--------|
-| Alert types overview | test_alert_routes.py | ✅ |
-| Temperature low alerts | test_alert_routes.py | ✅ |
-| Temperature high alerts | test_alert_routes.py | ✅ |
-| System status alerts | test_alert_routes.py | ✅ |
-| Motion detection alerts | test_alert_routes.py | ✅ |
-| Email subscription form | test_alert_routes.py | ✅ |
-| Subscription confirmation | test_alert_routes.py | ✅ |
-| Current subscriptions display | test_alert_routes.py | ✅ |
-| Check subscription status | test_alert_routes.py | ✅ |
-| Edit subscription | test_alert_routes.py | ✅ |
-| Unsubscribe | test_alert_routes.py | ✅ |
-| Test alert buttons | test_alert_routes.py | ✅ |
-| Alert history table | test_alert_routes.py | ✅ |
-| History search/filter | test_alert_routes.py | ✅ |
+**How Tests Are Executed:**
 
-### Settings Page Features
-| Feature | Test File(s) | Status |
-|---------|--------------|--------|
-| Temperature unit preference | test_settings_routes.py | ✅ |
-| Alert thresholds config | test_settings_routes.py | ✅ |
-| Notification preferences | test_settings_routes.py | ✅ |
-| Email notifications toggle | test_settings_routes.py | ✅ |
-| Individual alert toggles | test_settings_routes.py | ✅ |
-| Reset to defaults | test_settings_routes.py | ✅ |
+```bash
+pytest tdd/phase7_integration/system/test_sensor_to_cloud.py -v
+```
 
-### Admin Page Features
-| Feature | Test File(s) | Status |
-|---------|--------------|--------|
-| Pi memory metrics | test_admin_routes.py | ✅ |
-| Pi storage metrics | test_admin_routes.py | ✅ |
-| S3 storage metrics | test_admin_routes.py | ✅ |
-| AWS billing metrics | test_admin_routes.py | ✅ |
-| Camera settings | test_admin_routes.py | ✅ |
-| Motion recording toggle | test_admin_routes.py | ✅ |
-| Nightly headcount settings | test_admin_routes.py | ✅ |
-| Timezone selection | test_admin_routes.py | ✅ |
-| Delete all videos | test_admin_routes.py | ✅ |
-| Delete sensor data | test_admin_routes.py | ✅ |
-| System restart script | test_admin_routes.py | ✅ |
-| Health check script | test_admin_routes.py | ✅ |
-| Performance monitor | test_admin_routes.py | ✅ |
-| System update | test_admin_routes.py | ✅ |
-| Service control (start/stop) | test_admin_routes.py | ✅ |
-| Sensor diagnostics | test_admin_routes.py | ✅ |
-| Climate control (fan) | test_admin_routes.py | ✅ |
-| S3 scan/clean | test_admin_routes.py | ✅ |
+**Test Execution Flow:**
+1. Tests configure all mocked components
+2. Sensor service processes a reading
+3. Verification that all systems received data
+4. Alert verification for threshold violations
 
-### Diagnostics Page Features
-| Feature | Test File(s) | Status |
-|---------|--------------|--------|
-| Run all diagnostics | test_diagnostics_routes.py | ✅ |
-| Amplify config check | test_diagnostics_routes.py | ✅ |
-| Auth session check | test_diagnostics_routes.py | ✅ |
-| Cognito token check | test_diagnostics_routes.py | ✅ |
-| Access token validity | test_diagnostics_routes.py | ✅ |
-| AWS credentials check | test_diagnostics_routes.py | ✅ |
-| Test API call | test_diagnostics_routes.py | ✅ |
-| Force credential refresh | test_diagnostics_routes.py | ✅ |
-| IAM policy status | test_diagnostics_routes.py | ✅ |
-| Troubleshooting guides | test_diagnostics_routes.py | ✅ |
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_sensor_reading_saved_to_csv` | Verify local storage |
+| `test_sensor_reading_published_to_iot` | Verify cloud publish |
+| `test_high_temperature_triggers_alert` | Verify alert system |
+| `test_complete_sensor_pipeline` | Verify full flow |
 
-### Backend/Infrastructure Coverage
-| Functionality | Phase | Test File(s) | Status |
-|--------------|-------|--------------|--------|
-| **Configuration** ||||
-| Load JSON config | 1 | test_config_loader.py | ✅ |
-| Validate config schema | 1 | test_config_validation.py | ✅ |
-| Environment variables | 1 | test_environment.py | ✅ |
-| Multi-coop config | 1 | test_config_loader.py | ✅ |
-| **Logging** ||||
-| Logger creation | 1 | test_logging_setup.py | ✅ |
-| File rotation | 1 | test_logging_setup.py | ✅ |
-| Coop ID in logs | 1 | test_logging_setup.py | ✅ |
-| **Data Models** ||||
-| Sensor readings | 1 | test_sensor_models.py | ✅ |
-| Video metadata | 1 | test_video_models.py | ✅ |
-| Chicken registry | 1 | test_chicken_models.py | ✅ |
-| Headcount logs | 1 | test_chicken_models.py | ✅ |
-| **Hardware** ||||
-| Temperature sensor | 2 | test_sensor_interface.py | ✅ |
-| Humidity sensor | 2 | test_sensor_interface.py | ✅ |
-| Camera capture | 2 | test_camera_interface.py | ✅ |
-| Video recording | 2 | test_camera_interface.py | ✅ |
-| Motion detection | 2 | test_motion_detector.py | ✅ |
-| **Persistence** ||||
-| SQLite connection | 3 | test_database_connection.py | ✅ |
-| User CRUD | 3 | test_database_connection.py | ✅ |
-| CSV storage | 3 | test_csv_storage.py | ✅ |
-| Daily file rotation | 3 | test_csv_storage.py | ✅ |
-| CSV backup tracking | 3 | test_csv_storage.py | ✅ |
-| **AWS Integration** ||||
-| S3 upload/download | 4 | test_s3_client.py | ✅ |
-| S3 presigned URLs | 4 | test_s3_client.py | ✅ |
-| IoT Core publish | 4 | test_iot_client.py | ✅ |
-| IoT topic management | 4 | test_iot_client.py | ✅ |
-| SNS alerts | 4 | test_sns_client.py | ✅ |
-| SNS subscriptions | 4 | test_sns_client.py | ✅ |
-| **API Layer** ||||
-| Password hashing | 5 | test_authentication.py | ✅ |
-| Session management | 5 | test_authentication.py | ✅ |
-| CSRF protection | 5 | test_authentication.py | ✅ |
-| Sensor routes | 5 | test_sensor_routes.py | ✅ |
-| Video routes | 5 | test_video_routes.py | ✅ |
-| Video retention | 5 | test_video_routes.py | ✅ |
-| Chicken routes | 5 | test_chicken_routes.py | ✅ |
-| Headcount routes | 5 | test_headcount_routes.py | ✅ |
-| Settings routes | 5 | test_settings_routes.py | ✅ |
-| Admin routes | 5 | test_admin_routes.py | ✅ |
-| Alert routes | 5 | test_alert_routes.py | ✅ |
-| Diagnostics routes | 5 | test_diagnostics_routes.py | ✅ |
-| **Frontend Services** ||||
-| API client | 6 | test_api_service.py | ✅ |
-| IoT WebSocket | 6 | test_iot_websocket.py | ✅ |
-| Dashboard page | 6 | test_dashboard_page.py | ✅ |
-| **Integration** ||||
-| Sensor pipeline | 7 | test_sensor_to_cloud.py | ✅ |
-| User authentication | 7 | test_user_flows.py | ✅ |
-| Video management | 7 | test_user_flows.py | ✅ |
-| Headcount | 7 | test_user_flows.py | ✅ |
-| **DevOps/CI-CD** ||||
-| GitHub Actions workflow | 8 | test_github_actions.py | ✅ |
-| Change detection | 8 | test_github_actions.py | ✅ |
-| Deployment scripts | 8 | test_deploy_script.py | ✅ |
-| Health checks | 8 | test_health_check.py | ✅ |
-| Systemd services | 8 | test_systemd_services.py | ✅ |
-| Service management | 8 | test_systemd_services.py | ✅ |
-| Auto-updates | 8 | test_auto_update.py | ✅ |
-| Pi device updates | 8 | test_deploy_script.py | ✅ |
-| **Edge Resilience** ||||
-| Power recovery | 9 | test_power_recovery.py | ✅ |
-| Offline operation | 9 | test_offline_operation.py | ✅ |
-| Local data buffering | 9 | test_offline_operation.py | ✅ |
-| Data synchronization | 9 | test_data_sync.py | ✅ |
-| Local storage management | 9 | test_local_storage.py | ✅ |
-| Connection retry | 9 | test_connection_retry.py | ✅ |
-| Circuit breaker pattern | 9 | test_connection_retry.py | ✅ |
+---
 
-| **Security Hardening** ||||
-| Input validation | 10 | test_input_validation.py | ✅ |
-| SQL injection prevention | 10 | test_input_validation.py | ✅ |
-| Command injection prevention | 10 | test_input_validation.py | ✅ |
-| Secret management | 10 | test_secret_management.py | ✅ |
-| API rate limiting | 10 | test_api_security.py | ✅ |
-| CORS/CSRF protection | 10 | test_api_security.py | ✅ |
-| Audit logging | 10 | test_audit_logging.py | ✅ |
-| **Code Quality** ||||
-| Module structure | 11 | test_module_structure.py | ✅ |
-| Design patterns | 11 | test_design_patterns.py | ✅ |
-| Interface contracts | 11 | test_interface_contracts.py | ✅ |
-| **Advanced Alerting** ||||
-| Webhook notifications | 12 | test_webhook_notifications.py | ✅ |
-| Alert routing | 12 | test_alert_routing.py | ✅ |
-| Alert aggregation | 12 | test_alert_aggregation.py | ✅ |
-| **Command Queue** ||||
-| DynamoDB command queue | 13 | test_command_queue.py | ✅ |
-| Job management | 13 | test_job_management.py | ✅ |
-| **RBAC** ||||
-| User roles | 14 | test_user_roles.py | ✅ |
-| Permissions | 14 | test_permissions.py | ✅ |
-| **Real-Time Streaming** ||||
-| Live streaming | 15 | test_live_streaming.py | ✅ |
-| Stream protocols | 15 | test_stream_protocols.py | ✅ |
-| **Multi-Camera Intelligence** ||||
-| Detection zones | 16 | test_detection_zones.py | ✅ |
-| Chicken counting | 16 | test_chicken_counting.py | ✅ |
-| **Backup & DR** ||||
-| Data backup | 17 | test_data_backup.py | ✅ |
-| Disaster recovery | 17 | test_disaster_recovery.py | ✅ |
-| Failover | 17 | test_failover.py | ✅ |
-| **Observability** ||||
-| Metrics collection | 18 | test_metrics_collection.py | ✅ |
-| Distributed tracing | 18 | test_distributed_tracing.py | ✅ |
-| Performance monitoring | 18 | test_performance_monitoring.py | ✅ |
+### 7.2 User Flows (`test_user_flows.py`)
 
-**Legend:**
-- ✅ = Test exists and covers functionality
-- All 18 phases now covered: Foundation through Observability!
+**Functionality Being Tested:**
+- Complete login → dashboard flow
+- Logout and session clearing
+- Password reset flow
+- Video viewing and retention
+- Chicken registration and management
+- Alert subscription
+- Headcount viewing and manual trigger
+
+**Why This Matters:**
+E2E tests verify the complete user experience. They catch issues that unit tests miss, like navigation problems or data display errors.
+
+**How Tests Are Executed:**
+
+```bash
+pytest tdd/phase7_integration/e2e/test_user_flows.py -v
+```
+
+**Test Execution Flow:**
+1. Tests simulate complete user journeys
+2. Multiple HTTP requests in sequence
+3. Session state maintained across requests
+4. Final state verified
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_user_can_login_and_access_dashboard` | Verify auth flow |
+| `test_user_can_view_video_list` | Verify video access |
+| `test_user_can_register_chicken` | Verify registry |
+| `test_user_can_subscribe_to_alerts` | Verify SNS flow |
+| `test_user_can_trigger_manual_headcount` | Verify headcount |
+
 
 ---
 
@@ -2305,6 +2078,118 @@ pytest tdd/phase18_observability/performance/test_performance_monitoring.py -v
 
 ---
 
+## Phase 18.1: TDD Refactoring
+
+Phase 18.1 completes the TDD "Refactor" step that was missing across phases 1-18. Per PHASE1_QUICKSTART.md, the cycle is Red → Green → **Refactor**. This phase verifies code quality, type safety, formatting, and coverage thresholds are met.
+
+### 18.1.1 Black Formatting (`test_black_formatting.py`)
+
+**Functionality Being Tested:**
+- All Python files in `src/` conform to Black formatting standard
+- No files are excluded from formatting checks
+
+**Why This Matters:**
+Consistent formatting prevents merge conflicts, improves readability, and is a PHASE1_QUICKSTART.md success criteria ("no linting errors").
+
+**How Tests Are Executed:**
+```bash
+pytest tdd/phase18_1_refactoring/formatting/test_black_formatting.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_all_source_files_formatted` | All 118 Python files pass `black --check` |
+| `test_no_python_files_excluded_from_check` | Verify at least 60 source files exist |
+
+---
+
+### 18.1.2 Mypy Type Safety (`test_mypy_type_safety.py`)
+
+**Functionality Being Tested:**
+- All source files pass mypy static type checking with zero errors
+- Each of 17 previously-failing files passes individually
+
+**Why This Matters:**
+Type errors cause runtime crashes. Static type checking catches type mismatches, None-safety issues, and incorrect function signatures before deployment.
+
+**How Tests Are Executed:**
+```bash
+pytest tdd/phase18_1_refactoring/type_safety/test_mypy_type_safety.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_src_passes_mypy` | Zero mypy errors across entire `src/` |
+| `test_individual_file_passes_mypy[src/hardware/motion/detector.py]` | Parametrized per-file verification (17 files) |
+
+---
+
+### 18.1.3 Pylint Code Quality (`test_pylint_warnings.py`)
+
+**Functionality Being Tested:**
+- Zero unused imports (W0611)
+- Zero unnecessary pass statements (W0107)
+- Zero overly broad exception catches (W0718)
+- Zero missing timeouts on HTTP requests (W3101)
+- Zero missing `raise from` chains (W0707)
+- Zero f-string logging calls (W1203)
+- Zero unused variables (W0612)
+- Zero total pylint warnings
+
+**Why This Matters:**
+Pylint warnings indicate code that works but has quality issues: unused code increases maintenance burden, broad exceptions hide bugs, missing timeouts cause production hangs.
+
+**How Tests Are Executed:**
+```bash
+pytest tdd/phase18_1_refactoring/code_quality/test_pylint_warnings.py -v
+```
+
+**Key Test Cases:**
+| Test | Purpose |
+|------|---------|
+| `test_no_unused_imports` | All imports are used |
+| `test_no_broad_exception_catches` | Exception handlers are specific |
+| `test_no_missing_timeouts` | HTTP calls have timeout |
+| `test_zero_pylint_warnings` | Aggregate gate: 0 total warnings |
+
+---
+
+### 18.1.4 Coverage Gap Tests (`test_coverage_gaps.py`)
+
+**Functionality Being Tested:**
+- Overall `src/` coverage exceeds 80%
+- Each of 14 previously-low-coverage files individually exceeds 80%
+
+**How Tests Are Executed:**
+```bash
+pytest tdd/phase18_1_refactoring/coverage/test_coverage_gaps.py -v
+```
+
+---
+
+### 18.1.5 Coverage Improvement Tests
+
+Seven additional test files provide coverage for modules that were below the 80% threshold:
+
+| Test File | Modules Covered | Tests |
+|-----------|----------------|-------|
+| `test_video_repository_coverage.py` | `persistence/repositories/video.py` | 6 |
+| `test_sensor_hardware_coverage.py` | `hardware/sensors/{humidity,temperature,combined}.py` | 20 |
+| `test_services_coverage.py` | `services/{video,sensor}_service.py` | 16 |
+| `test_camera_coverage.py` | `hardware/camera/{interface,factory}.py` | 9 |
+| `test_auth_coverage.py` | `security/auth.py` | 7 |
+| `test_user_repository_coverage.py` | `persistence/repositories/user.py` | 11 |
+| `test_misc_coverage.py` | `utils/process.py`, `api/routes/sensors.py`, `security/validation.py` | 11 |
+
+**How Tests Are Executed:**
+```bash
+pytest tdd/phase18_1_refactoring/coverage/ -v
+```
+
+---
+
 ## Phase 19: Production Readiness
 
 Phase 19 validates that critical blockers preventing the application from starting are resolved. These are Priority 1 items — without them, `python -m src.main` fails immediately.
@@ -3069,7 +2954,242 @@ pytest tdd/phase28_documentation/architecture_docs/test_architecture_docs.py -v
 
 ---
 
-### Production Readiness Coverage Matrix
+---
+
+## Functionality Coverage Matrix
+
+This matrix maps **all application pages** to test coverage:
+
+### Dashboard Page Features
+| Feature | Test File(s) | Status |
+|---------|--------------|--------|
+| Coop selection toggle | test_dashboard_page.py | ✅ |
+| Manual refresh controls | test_dashboard_page.py | ✅ |
+| System status (online/offline) | test_dashboard_page.py | ✅ |
+| Temperature display | test_dashboard_page.py | ✅ |
+| Humidity display | test_dashboard_page.py | ✅ |
+| Door status | test_dashboard_page.py | ✅ |
+| Check door button | test_dashboard_page.py | ✅ |
+| Trend indicators | test_dashboard_page.py | ✅ |
+| Threshold violation highlight | test_dashboard_page.py | ✅ |
+| Live camera streaming | test_dashboard_page.py | ✅ |
+| Sensor data charts | test_dashboard_page.py | ✅ |
+| Time range selection (6h-30d) | test_dashboard_page.py | ✅ |
+| Chart statistics (min/max/avg) | test_dashboard_page.py | ✅ |
+| Video grid | test_dashboard_page.py | ✅ |
+| Video filters (camera/date/sort) | test_dashboard_page.py | ✅ |
+| Video pagination | test_dashboard_page.py | ✅ |
+| Manual record button | test_dashboard_page.py | ✅ |
+| Data export CSV | test_dashboard_page.py | ✅ |
+
+### Chickens Page Features
+| Feature | Test File(s) | Status |
+|---------|--------------|--------|
+| Chicken statistics cards | test_chicken_routes.py | ✅ |
+| Chicken registry list | test_chicken_routes.py | ✅ |
+| Add chicken form | test_chicken_routes.py | ✅ |
+| Edit chicken modal | test_chicken_routes.py | ✅ |
+| Deactivate chicken | test_chicken_routes.py | ✅ |
+| Chicken card display | test_chicken_models.py | ✅ |
+
+### Headcount Page Features
+| Feature | Test File(s) | Status |
+|---------|--------------|--------|
+| Latest headcount display | test_headcount_routes.py | ✅ |
+| Circular progress indicator | test_headcount_routes.py | ✅ |
+| Confidence percentage | test_headcount_routes.py | ✅ |
+| Detection method display | test_headcount_routes.py | ✅ |
+| Headcount statistics | test_headcount_routes.py | ✅ |
+| Success rate | test_headcount_routes.py | ✅ |
+| Current streak | test_headcount_routes.py | ✅ |
+| Historical log (30 records) | test_headcount_routes.py | ✅ |
+| Headcount chart | test_headcount_routes.py | ✅ |
+| Manual headcount trigger | test_headcount_routes.py | ✅ |
+
+### Alerts Page Features
+| Feature | Test File(s) | Status |
+|---------|--------------|--------|
+| Alert types overview | test_alert_routes.py | ✅ |
+| Temperature low alerts | test_alert_routes.py | ✅ |
+| Temperature high alerts | test_alert_routes.py | ✅ |
+| System status alerts | test_alert_routes.py | ✅ |
+| Motion detection alerts | test_alert_routes.py | ✅ |
+| Email subscription form | test_alert_routes.py | ✅ |
+| Subscription confirmation | test_alert_routes.py | ✅ |
+| Current subscriptions display | test_alert_routes.py | ✅ |
+| Check subscription status | test_alert_routes.py | ✅ |
+| Edit subscription | test_alert_routes.py | ✅ |
+| Unsubscribe | test_alert_routes.py | ✅ |
+| Test alert buttons | test_alert_routes.py | ✅ |
+| Alert history table | test_alert_routes.py | ✅ |
+| History search/filter | test_alert_routes.py | ✅ |
+
+### Settings Page Features
+| Feature | Test File(s) | Status |
+|---------|--------------|--------|
+| Temperature unit preference | test_settings_routes.py | ✅ |
+| Alert thresholds config | test_settings_routes.py | ✅ |
+| Notification preferences | test_settings_routes.py | ✅ |
+| Email notifications toggle | test_settings_routes.py | ✅ |
+| Individual alert toggles | test_settings_routes.py | ✅ |
+| Reset to defaults | test_settings_routes.py | ✅ |
+
+### Admin Page Features
+| Feature | Test File(s) | Status |
+|---------|--------------|--------|
+| Pi memory metrics | test_admin_routes.py | ✅ |
+| Pi storage metrics | test_admin_routes.py | ✅ |
+| S3 storage metrics | test_admin_routes.py | ✅ |
+| AWS billing metrics | test_admin_routes.py | ✅ |
+| Camera settings | test_admin_routes.py | ✅ |
+| Motion recording toggle | test_admin_routes.py | ✅ |
+| Nightly headcount settings | test_admin_routes.py | ✅ |
+| Timezone selection | test_admin_routes.py | ✅ |
+| Delete all videos | test_admin_routes.py | ✅ |
+| Delete sensor data | test_admin_routes.py | ✅ |
+| System restart script | test_admin_routes.py | ✅ |
+| Health check script | test_admin_routes.py | ✅ |
+| Performance monitor | test_admin_routes.py | ✅ |
+| System update | test_admin_routes.py | ✅ |
+| Service control (start/stop) | test_admin_routes.py | ✅ |
+| Sensor diagnostics | test_admin_routes.py | ✅ |
+| Climate control (fan) | test_admin_routes.py | ✅ |
+| S3 scan/clean | test_admin_routes.py | ✅ |
+
+### Diagnostics Page Features
+| Feature | Test File(s) | Status |
+|---------|--------------|--------|
+| Run all diagnostics | test_diagnostics_routes.py | ✅ |
+| Amplify config check | test_diagnostics_routes.py | ✅ |
+| Auth session check | test_diagnostics_routes.py | ✅ |
+| Cognito token check | test_diagnostics_routes.py | ✅ |
+| Access token validity | test_diagnostics_routes.py | ✅ |
+| AWS credentials check | test_diagnostics_routes.py | ✅ |
+| Test API call | test_diagnostics_routes.py | ✅ |
+| Force credential refresh | test_diagnostics_routes.py | ✅ |
+| IAM policy status | test_diagnostics_routes.py | ✅ |
+| Troubleshooting guides | test_diagnostics_routes.py | ✅ |
+
+### Backend/Infrastructure Coverage
+| Functionality | Phase | Test File(s) | Status |
+|--------------|-------|--------------|--------|
+| **Configuration** ||||
+| Load JSON config | 1 | test_config_loader.py | ✅ |
+| Validate config schema | 1 | test_config_validation.py | ✅ |
+| Environment variables | 1 | test_environment.py | ✅ |
+| Multi-coop config | 1 | test_config_loader.py | ✅ |
+| **Logging** ||||
+| Logger creation | 1 | test_logging_setup.py | ✅ |
+| File rotation | 1 | test_logging_setup.py | ✅ |
+| Coop ID in logs | 1 | test_logging_setup.py | ✅ |
+| **Data Models** ||||
+| Sensor readings | 1 | test_sensor_models.py | ✅ |
+| Video metadata | 1 | test_video_models.py | ✅ |
+| Chicken registry | 1 | test_chicken_models.py | ✅ |
+| Headcount logs | 1 | test_chicken_models.py | ✅ |
+| **Hardware** ||||
+| Temperature sensor | 2 | test_sensor_interface.py | ✅ |
+| Humidity sensor | 2 | test_sensor_interface.py | ✅ |
+| Camera capture | 2 | test_camera_interface.py | ✅ |
+| Video recording | 2 | test_camera_interface.py | ✅ |
+| Motion detection | 2 | test_motion_detector.py | ✅ |
+| **Persistence** ||||
+| SQLite connection | 3 | test_database_connection.py | ✅ |
+| User CRUD | 3 | test_database_connection.py | ✅ |
+| CSV storage | 3 | test_csv_storage.py | ✅ |
+| Daily file rotation | 3 | test_csv_storage.py | ✅ |
+| CSV backup tracking | 3 | test_csv_storage.py | ✅ |
+| **AWS Integration** ||||
+| S3 upload/download | 4 | test_s3_client.py | ✅ |
+| S3 presigned URLs | 4 | test_s3_client.py | ✅ |
+| IoT Core publish | 4 | test_iot_client.py | ✅ |
+| IoT topic management | 4 | test_iot_client.py | ✅ |
+| SNS alerts | 4 | test_sns_client.py | ✅ |
+| SNS subscriptions | 4 | test_sns_client.py | ✅ |
+| **API Layer** ||||
+| Password hashing | 5 | test_authentication.py | ✅ |
+| Session management | 5 | test_authentication.py | ✅ |
+| CSRF protection | 5 | test_authentication.py | ✅ |
+| Sensor routes | 5 | test_sensor_routes.py | ✅ |
+| Video routes | 5 | test_video_routes.py | ✅ |
+| Video retention | 5 | test_video_routes.py | ✅ |
+| Chicken routes | 5 | test_chicken_routes.py | ✅ |
+| Headcount routes | 5 | test_headcount_routes.py | ✅ |
+| Settings routes | 5 | test_settings_routes.py | ✅ |
+| Admin routes | 5 | test_admin_routes.py | ✅ |
+| Alert routes | 5 | test_alert_routes.py | ✅ |
+| Diagnostics routes | 5 | test_diagnostics_routes.py | ✅ |
+| **Frontend Services** ||||
+| API client | 6 | test_api_service.py | ✅ |
+| IoT WebSocket | 6 | test_iot_websocket.py | ✅ |
+| Dashboard page | 6 | test_dashboard_page.py | ✅ |
+| **Integration** ||||
+| Sensor pipeline | 7 | test_sensor_to_cloud.py | ✅ |
+| User authentication | 7 | test_user_flows.py | ✅ |
+| Video management | 7 | test_user_flows.py | ✅ |
+| Headcount | 7 | test_user_flows.py | ✅ |
+| **DevOps/CI-CD** ||||
+| GitHub Actions workflow | 8 | test_github_actions.py | ✅ |
+| Change detection | 8 | test_github_actions.py | ✅ |
+| Deployment scripts | 8 | test_deploy_script.py | ✅ |
+| Health checks | 8 | test_health_check.py | ✅ |
+| Systemd services | 8 | test_systemd_services.py | ✅ |
+| Service management | 8 | test_systemd_services.py | ✅ |
+| Auto-updates | 8 | test_auto_update.py | ✅ |
+| Pi device updates | 8 | test_deploy_script.py | ✅ |
+| **Edge Resilience** ||||
+| Power recovery | 9 | test_power_recovery.py | ✅ |
+| Offline operation | 9 | test_offline_operation.py | ✅ |
+| Local data buffering | 9 | test_offline_operation.py | ✅ |
+| Data synchronization | 9 | test_data_sync.py | ✅ |
+| Local storage management | 9 | test_local_storage.py | ✅ |
+| Connection retry | 9 | test_connection_retry.py | ✅ |
+| Circuit breaker pattern | 9 | test_connection_retry.py | ✅ |
+
+| **Security Hardening** ||||
+| Input validation | 10 | test_input_validation.py | ✅ |
+| SQL injection prevention | 10 | test_input_validation.py | ✅ |
+| Command injection prevention | 10 | test_input_validation.py | ✅ |
+| Secret management | 10 | test_secret_management.py | ✅ |
+| API rate limiting | 10 | test_api_security.py | ✅ |
+| CORS/CSRF protection | 10 | test_api_security.py | ✅ |
+| Audit logging | 10 | test_audit_logging.py | ✅ |
+| **Code Quality** ||||
+| Module structure | 11 | test_module_structure.py | ✅ |
+| Design patterns | 11 | test_design_patterns.py | ✅ |
+| Interface contracts | 11 | test_interface_contracts.py | ✅ |
+| **Advanced Alerting** ||||
+| Webhook notifications | 12 | test_webhook_notifications.py | ✅ |
+| Alert routing | 12 | test_alert_routing.py | ✅ |
+| Alert aggregation | 12 | test_alert_aggregation.py | ✅ |
+| **Command Queue** ||||
+| DynamoDB command queue | 13 | test_command_queue.py | ✅ |
+| Job management | 13 | test_job_management.py | ✅ |
+| **RBAC** ||||
+| User roles | 14 | test_user_roles.py | ✅ |
+| Permissions | 14 | test_permissions.py | ✅ |
+| **Real-Time Streaming** ||||
+| Live streaming | 15 | test_live_streaming.py | ✅ |
+| Stream protocols | 15 | test_stream_protocols.py | ✅ |
+| **Multi-Camera Intelligence** ||||
+| Detection zones | 16 | test_detection_zones.py | ✅ |
+| Chicken counting | 16 | test_chicken_counting.py | ✅ |
+| **Backup & DR** ||||
+| Data backup | 17 | test_data_backup.py | ✅ |
+| Disaster recovery | 17 | test_disaster_recovery.py | ✅ |
+| Failover | 17 | test_failover.py | ✅ |
+| **Observability** ||||
+| Metrics collection | 18 | test_metrics_collection.py | ✅ |
+| Distributed tracing | 18 | test_distributed_tracing.py | ✅ |
+| Performance monitoring | 18 | test_performance_monitoring.py | ✅ |
+
+**Legend:**
+- ✅ = Test exists and covers functionality
+- All 28 phases now covered: Foundation through Documentation!
+
+---
+
+## Production Readiness Coverage Matrix
 
 | Priority | Phase | Test File(s) | Tests | Status |
 |----------|-------|--------------|-------|--------|
@@ -3111,6 +3231,8 @@ pytest tdd/phase28_documentation/architecture_docs/test_architecture_docs.py -v
 | Architecture docs | 28 | test_architecture_docs.py | 6 | ✅ |
 
 **Total new tests: 217 across 26 test files in 10 new phases**
+
+---
 
 ---
 

@@ -6,12 +6,11 @@ Implements motion detection algorithms using frame differencing.
 
 import cv2
 import numpy as np
-from typing import Optional, Tuple, List, Dict, Any
+from typing import Optional, Tuple, Dict, Any
 
 
 class NoReferenceFrameError(Exception):
     """Raised when motion detection is attempted without a reference frame."""
-    pass
 
 
 class MotionDetector:
@@ -30,7 +29,7 @@ class MotionDetector:
         sensitivity: int = 50,
         min_area: int = 500,
         auto_update_reference: bool = False,
-        blur_size: int = 21
+        blur_size: int = 21,
     ):
         """
         Initialize motion detector.
@@ -45,8 +44,8 @@ class MotionDetector:
         self.min_area = min_area
         self.auto_update_reference = auto_update_reference
         self.blur_size = blur_size
-        self._reference_frame = None
-        self.detection_region = None
+        self._reference_frame: Optional[np.ndarray] = None
+        self.detection_region: Optional[Tuple[int, int, int, int]] = None
 
     @property
     def has_reference_frame(self) -> bool:
@@ -62,7 +61,9 @@ class MotionDetector:
         """
         # Convert to grayscale and blur
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        self._reference_frame = cv2.GaussianBlur(gray, (self.blur_size, self.blur_size), 0)
+        self._reference_frame = cv2.GaussianBlur(
+            gray, (self.blur_size, self.blur_size), 0
+        )
 
     def set_detection_region(self, region: Tuple[int, int, int, int]) -> None:
         """
@@ -91,16 +92,22 @@ class MotionDetector:
             NoReferenceFrameError: If no reference frame is set
         """
         if not self.has_reference_frame:
-            raise NoReferenceFrameError("No reference frame set. Call set_reference_frame() first.")
+            raise NoReferenceFrameError(
+                "No reference frame set. Call set_reference_frame() first."
+            )
 
         # Convert to grayscale and blur
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (self.blur_size, self.blur_size), 0)
 
         # Apply detection region if set
+        assert self._reference_frame is not None
         if self.detection_region:
             x, y, w, h = self.detection_region
-            frame_diff = cv2.absdiff(self._reference_frame[y:y+h, x:x+w], blurred[y:y+h, x:x+w])
+            frame_diff = cv2.absdiff(
+                self._reference_frame[y : y + h, x : x + w],
+                blurred[y : y + h, x : x + w],
+            )
         else:
             frame_diff = cv2.absdiff(self._reference_frame, blurred)
 
@@ -110,7 +117,9 @@ class MotionDetector:
         _, thresh = cv2.threshold(frame_diff, threshold_value, 255, cv2.THRESH_BINARY)
 
         # Find contours
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         # Check if any contour exceeds min_area
         motion_detected = any(cv2.contourArea(c) >= self.min_area for c in contours)
@@ -136,16 +145,22 @@ class MotionDetector:
                 - bounding_boxes: List[Tuple[int, int, int, int]]
         """
         if not self.has_reference_frame:
-            raise NoReferenceFrameError("No reference frame set. Call set_reference_frame() first.")
+            raise NoReferenceFrameError(
+                "No reference frame set. Call set_reference_frame() first."
+            )
 
         # Convert to grayscale and blur
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         blurred = cv2.GaussianBlur(gray, (self.blur_size, self.blur_size), 0)
 
         # Apply detection region if set
+        assert self._reference_frame is not None
         if self.detection_region:
             x, y, w, h = self.detection_region
-            frame_diff = cv2.absdiff(self._reference_frame[y:y+h, x:x+w], blurred[y:y+h, x:x+w])
+            frame_diff = cv2.absdiff(
+                self._reference_frame[y : y + h, x : x + w],
+                blurred[y : y + h, x : x + w],
+            )
             region_offset = (x, y)
         else:
             frame_diff = cv2.absdiff(self._reference_frame, blurred)
@@ -156,7 +171,9 @@ class MotionDetector:
         _, thresh = cv2.threshold(frame_diff, threshold_value, 255, cv2.THRESH_BINARY)
 
         # Find contours
-        contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv2.findContours(
+            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+        )
 
         # Filter contours by min_area
         valid_contours = [c for c in contours if cv2.contourArea(c) >= self.min_area]
@@ -171,12 +188,7 @@ class MotionDetector:
         for contour in valid_contours:
             x, y, w, h = cv2.boundingRect(contour)
             # Adjust for region offset
-            bounding_boxes.append((
-                x + region_offset[0],
-                y + region_offset[1],
-                w,
-                h
-            ))
+            bounding_boxes.append((x + region_offset[0], y + region_offset[1], w, h))
 
         # Auto-update reference if enabled
         if self.auto_update_reference:
@@ -186,7 +198,7 @@ class MotionDetector:
             "motion_detected": motion_detected,
             "contour_count": contour_count,
             "total_area": total_area,
-            "bounding_boxes": bounding_boxes
+            "bounding_boxes": bounding_boxes,
         }
 
     @classmethod
@@ -213,7 +225,7 @@ class MotionDetector:
             "sensitivity": self.sensitivity,
             "min_area": self.min_area,
             "auto_update_reference": self.auto_update_reference,
-            "blur_size": self.blur_size
+            "blur_size": self.blur_size,
         }
 
     def update_config(self, **kwargs) -> None:

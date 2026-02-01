@@ -65,7 +65,9 @@ class JobManager:
         self._history: Dict[str, List[JobEvent]] = {}
         self.retention_days: int = 30
 
-    def create_job(self, action: str, params: Dict[str, Any], user_id: str, max_retries: int = 3) -> Job:
+    def create_job(
+        self, action: str, params: Dict[str, Any], user_id: str, max_retries: int = 3
+    ) -> Job:
         """Create a new job and register it with the manager.
 
         Args:
@@ -78,7 +80,13 @@ class JobManager:
             The newly created Job instance.
         """
         job_id = str(uuid.uuid4())
-        job = Job(job_id=job_id, action=action, params=params, user_id=user_id, max_retries=max_retries)
+        job = Job(
+            job_id=job_id,
+            action=action,
+            params=params,
+            user_id=user_id,
+            max_retries=max_retries,
+        )
         self._jobs[job_id] = job
         self._history[job_id] = [JobEvent(event="created")]
         return job
@@ -91,7 +99,7 @@ class JobManager:
         """Transition a job to RUNNING status and record the start time."""
         job = self._jobs[job_id]
         job.status = JobStatus.RUNNING
-        job._start_time = time.time()
+        job._start_time = time.time()  # pylint: disable=protected-access
         self._history[job_id].append(JobEvent(event="started"))
 
     def complete_job(self, job_id: str, result: Dict[str, Any]) -> None:
@@ -99,8 +107,10 @@ class JobManager:
         job = self._jobs[job_id]
         job.status = JobStatus.COMPLETED
         job.result = result
-        if job._start_time is not None:
-            job.duration_seconds = time.time() - job._start_time
+        if job._start_time is not None:  # pylint: disable=protected-access
+            job.duration_seconds = (
+                time.time() - job._start_time  # pylint: disable=protected-access
+            )
         else:
             job.duration_seconds = 0.0
         self._history[job_id].append(JobEvent(event="completed"))
@@ -112,7 +122,9 @@ class JobManager:
         job.error = error
         self._history[job_id].append(JobEvent(event="failed"))
 
-    def update_progress(self, job_id: str, percentage: int = 0, message: str = "") -> None:
+    def update_progress(
+        self, job_id: str, percentage: int = 0, message: str = ""
+    ) -> None:
         """Update the progress percentage and/or message for a running job."""
         job = self._jobs[job_id]
         if percentage:
@@ -164,10 +176,15 @@ class JobManager:
         new_retry_count = job.retry_count + 1
         if new_retry_count > job.max_retries:
             return None
-        new_job = self.create_job(action=job.action, params=job.params, user_id=job.user_id, max_retries=job.max_retries)
+        new_job = self.create_job(
+            action=job.action,
+            params=job.params,
+            user_id=job.user_id,
+            max_retries=job.max_retries,
+        )
         new_job.retry_count = new_retry_count
         return new_job
 
     def get_retry_delays(self, max_retries: int) -> List[float]:
         """Return exponential backoff delays for the given number of retries."""
-        return [2 ** i for i in range(max_retries)]
+        return [2**i for i in range(max_retries)]

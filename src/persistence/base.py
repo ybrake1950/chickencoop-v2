@@ -22,7 +22,6 @@ class BaseStorage(ABC):
         Args:
             data: Data to persist.
         """
-        pass
 
     @abstractmethod
     def load(self, identifier: Optional[str] = None) -> Any:
@@ -34,4 +33,3 @@ class BaseStorage(ABC):
         Returns:
             The loaded data.
         """
-        pass

@@ -7,6 +7,7 @@ from typing import Dict, List
 @dataclass
 class CORSConfig:
     """CORS configuration."""
+
     allowed_origins: List[str] = field(default_factory=list)
     allowed_methods: List[str] = field(default_factory=lambda: ["GET"])
     allowed_headers: List[str] = field(default_factory=list)
@@ -37,7 +38,9 @@ class CORSValidator:
             headers["Access-Control-Allow-Credentials"] = "true"
         return headers
 
-    def get_preflight_headers(self, origin: str, request_method: str, request_headers: str) -> Dict[str, str]:
+    def get_preflight_headers(  # pylint: disable=unused-argument
+        self, origin: str, request_method: str, request_headers: str
+    ) -> Dict[str, str]:
         """Build CORS preflight response headers including allowed methods and max age."""
         headers = self.get_cors_headers(origin)
         headers["Access-Control-Allow-Methods"] = ", ".join(self.config.allowed_methods)

@@ -1,4 +1,5 @@
 """S3 Client for ChickenCoop AWS operations."""
+
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -8,7 +9,6 @@ from botocore.exceptions import ClientError
 
 class S3ObjectNotFoundError(Exception):
     """Raised when an S3 object is not found."""
-    pass
 
 
 _s3_client_instance = None
@@ -16,13 +16,14 @@ _s3_client_instance = None
 
 def get_s3_client(config: Optional[Dict[str, Any]] = None) -> "S3Client":
     """Get or create a singleton S3Client instance."""
-    global _s3_client_instance
+    global _s3_client_instance  # pylint: disable=global-statement
     if _s3_client_instance is None:
         if config is None:
             import os
+
             config = {
                 "region": os.environ.get("AWS_REGION", "us-east-1"),
-                "s3": {"bucket": os.environ.get("S3_BUCKET", "chickencoop-default")}
+                "s3": {"bucket": os.environ.get("S3_BUCKET", "chickencoop-default")},
             }
         _s3_client_instance = S3Client(config)
     return _s3_client_instance
@@ -52,10 +53,7 @@ class S3Client:
         self._client = boto3.client("s3", region_name=self.region)
 
     def upload_file(
-        self,
-        local_path: Path,
-        s3_key: str,
-        metadata: Optional[Dict[str, str]] = None
+        self, local_path: Path, s3_key: str, metadata: Optional[Dict[str, str]] = None
     ) -> bool:
         """
         Upload a file to S3.
@@ -76,7 +74,7 @@ class S3Client:
             str(local_path),
             self.bucket,
             s3_key,
-            ExtraArgs=extra_args if extra_args else None
+            ExtraArgs=extra_args if extra_args else None,
         )
         return True
 
@@ -92,10 +90,7 @@ class S3Client:
             The S3 key where the video was uploaded.
         """
         self._client.upload_file(
-            str(local_path),
-            self.bucket,
-            s3_key,
-            ExtraArgs={"ContentType": "video/mp4"}
+            str(local_path), self.bucket, s3_key, ExtraArgs={"ContentType": "video/mp4"}
         )
         return s3_key
 
@@ -115,7 +110,7 @@ class S3Client:
         except ClientError as e:
             error_code = e.response.get("Error", {}).get("Code", "")
             if error_code == "404":
-                raise S3ObjectNotFoundError(f"Object not found: {s3_key}")
+                raise S3ObjectNotFoundError(f"Object not found: {s3_key}") from e
             raise
 
     def generate_presigned_url(self, s3_key: str, expires_in: int = 3600) -> str:
@@ -136,7 +131,7 @@ class S3Client:
         return self._client.generate_presigned_url(
             "get_object",
             Params={"Bucket": self.bucket, "Key": s3_key},
-            ExpiresIn=expires_in
+            ExpiresIn=expires_in,
         )
 
     def list_objects(self, prefix: str) -> List[Dict[str, Any]]:
@@ -189,8 +184,5 @@ class S3Client:
             True if deletion succeeded.
         """
         objects = [{"Key": key} for key in keys]
-        self._client.delete_objects(
-            Bucket=self.bucket,
-            Delete={"Objects": objects}
-        )
+        self._client.delete_objects(Bucket=self.bucket, Delete={"Objects": objects})
         return True

@@ -6,9 +6,9 @@ This module provides the BaseModel class that all data models inherit from.
 
 import json
 from datetime import datetime, timezone
-from typing import Any, Dict, List, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar
 
-T = TypeVar('T', bound='BaseModel')
+T = TypeVar("T", bound="BaseModel")
 
 
 class BaseModel:
@@ -31,11 +31,13 @@ class BaseModel:
         Args:
             **kwargs: Additional attributes to set
         """
-        self.created_at = kwargs.get('created_at', datetime.now(timezone.utc))
+        self.created_at = kwargs.get("created_at", datetime.now(timezone.utc))
 
         # If created_at was passed as string, parse it
         if isinstance(self.created_at, str):
-            self.created_at = datetime.fromisoformat(self.created_at.replace('Z', '+00:00'))
+            self.created_at = datetime.fromisoformat(
+                self.created_at.replace("Z", "+00:00")
+            )
 
     def validate(self) -> bool:
         """
@@ -61,7 +63,7 @@ class BaseModel:
         errors = []
         try:
             self.validate()
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             errors.append(str(e))
         return errors
 
@@ -70,7 +72,7 @@ class BaseModel:
         """Check if model is valid without raising exceptions."""
         try:
             return self.validate()
-        except Exception:
+        except Exception:  # pylint: disable=broad-exception-caught
             return False
 
     def to_dict(self) -> Dict[str, Any]:
@@ -80,9 +82,9 @@ class BaseModel:
         Returns:
             Dictionary representation of the model
         """
-        result = {}
+        result: Dict[str, Any] = {}
         for key, value in self.__dict__.items():
-            if key.startswith('_'):
+            if key.startswith("_"):
                 continue
             if isinstance(value, datetime):
                 result[key] = value.isoformat()
@@ -162,6 +164,6 @@ class BaseModel:
 class ValidationError(Exception):
     """Raised when model validation fails."""
 
-    def __init__(self, message: str, field: str = None):
+    def __init__(self, message: str, field: Optional[str] = None):
         self.field = field
         super().__init__(message)

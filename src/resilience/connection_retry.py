@@ -9,20 +9,19 @@ and graceful service degradation.
 import logging
 import random
 import threading
-import time
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional, TypeVar
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class CircuitState(Enum):
     """Circuit breaker states."""
+
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
@@ -31,6 +30,7 @@ class CircuitState(Enum):
 @dataclass
 class BackoffConfig:
     """Configuration for exponential backoff."""
+
     initial_delay: float = 1.0
     multiplier: float = 2.0
     max_delay: float = 300.0  # 5 minutes
@@ -114,6 +114,7 @@ class ExponentialBackoff:
 @dataclass
 class CircuitBreakerConfig:
     """Configuration for circuit breaker."""
+
     failure_threshold: int = 5
     recovery_timeout: float = 30.0
     half_open_max_calls: int = 1
@@ -133,7 +134,9 @@ class CircuitBreaker:
         self,
         name: str,
         config: Optional[CircuitBreakerConfig] = None,
-        on_state_change: Optional[Callable[[str, CircuitState, CircuitState], None]] = None
+        on_state_change: Optional[
+            Callable[[str, CircuitState, CircuitState], None]
+        ] = None,
     ):
         """
         Initialize circuit breaker.
@@ -167,7 +170,9 @@ class CircuitBreaker:
     def _check_recovery_timeout(self) -> None:
         """Check if open circuit should transition to half-open."""
         if self._state == CircuitState.OPEN and self._last_failure_time:
-            elapsed = (datetime.now(timezone.utc) - self._last_failure_time).total_seconds()
+            elapsed = (
+                datetime.now(timezone.utc) - self._last_failure_time
+            ).total_seconds()
             if elapsed >= self.config.recovery_timeout:
                 self._transition_to(CircuitState.HALF_OPEN)
 
@@ -177,7 +182,10 @@ class CircuitBreaker:
         if old_state != new_state:
             self._state = new_state
             logger.info(
-                f"Circuit breaker '{self.name}' state change: {old_state.value} -> {new_state.value}"
+                "Circuit breaker '%s' state change: %s -> %s",
+                self.name,
+                old_state.value,
+                new_state.value,
             )
             if self._on_state_change:
                 self._on_state_change(self.name, old_state, new_state)
@@ -235,6 +243,7 @@ class CircuitBreaker:
 @dataclass
 class TimeoutConfig:
     """Configuration for connection timeouts."""
+
     connect_timeout: float = 10.0
     read_timeout: float = 30.0
     write_timeout: float = 30.0
@@ -280,10 +289,12 @@ class ConnectionPool:
         with self._lock:
             if key in self._connections:
                 conn_info = self._connections[key]
-                age = (datetime.now(timezone.utc) - conn_info['created']).total_seconds()
+                age = (
+                    datetime.now(timezone.utc) - conn_info["created"]
+                ).total_seconds()
                 if age < self.max_age:
-                    conn_info['last_used'] = datetime.now(timezone.utc)
-                    return conn_info['connection']
+                    conn_info["last_used"] = datetime.now(timezone.utc)
+                    return conn_info["connection"]
                 else:
                     # Connection is stale, remove it
                     del self._connections[key]
@@ -306,14 +317,14 @@ class ConnectionPool:
                 if self._connections:
                     oldest_key = min(
                         self._connections.keys(),
-                        key=lambda k: self._connections[k]['last_used']
+                        key=lambda k: self._connections[k]["last_used"],
                     )
                     del self._connections[oldest_key]
 
             self._connections[key] = {
-                'connection': connection,
-                'created': datetime.now(timezone.utc),
-                'last_used': datetime.now(timezone.utc)
+                "connection": connection,
+                "created": datetime.now(timezone.utc),
+                "last_used": datetime.now(timezone.utc),
             }
             return True
 
@@ -335,8 +346,9 @@ class ConnectionPool:
         with self._lock:
             now = datetime.now(timezone.utc)
             stale_keys = [
-                key for key, info in self._connections.items()
-                if (now - info['created']).total_seconds() >= self.max_age
+                key
+                for key, info in self._connections.items()
+                if (now - info["created"]).total_seconds() >= self.max_age
             ]
             for key in stale_keys:
                 del self._connections[key]
@@ -355,6 +367,7 @@ class ConnectionPool:
 @dataclass
 class OutageRecord:
     """Record of a service outage."""
+
     service: str
     start_time: datetime
     end_time: Optional[datetime] = None
@@ -395,11 +408,10 @@ class RecoveryTracker:
                     return  # Already tracking this outage
 
             outage = OutageRecord(
-                service=service,
-                start_time=datetime.now(timezone.utc)
+                service=service, start_time=datetime.now(timezone.utc)
             )
             self._outages.append(outage)
-            logger.warning(f"Outage started for service: {service}")
+            logger.warning("Outage started for service: %s", service)
 
     def record_recovery(self, service: str) -> Optional[timedelta]:
         """
@@ -417,16 +429,17 @@ class RecoveryTracker:
                     outage.end_time = datetime.now(timezone.utc)
                     duration = outage.duration
                     logger.info(
-                        f"Connection restored for {service}. "
-                        f"Outage duration: {duration}"
+                        "Connection restored for %s. Outage duration: %s",
+                        service,
+                        duration,
                     )
 
                     # Notify callbacks
                     for callback in self._recovery_callbacks:
                         try:
                             callback(service)
-                        except Exception as e:
-                            logger.error(f"Recovery callback error: {e}")
+                        except Exception as e:  # pylint: disable=broad-exception-caught
+                            logger.error("Recovery callback error: %s", e)
 
                     return duration
             return None
@@ -449,26 +462,29 @@ class RecoveryTracker:
         """Generate a summary of recent recovery activity."""
         with self._lock:
             summary = {
-                'total_outages': len(self._outages),
-                'active_outages': len([o for o in self._outages if o.is_active]),
-                'recovered_outages': len([o for o in self._outages if not o.is_active]),
-                'services': {}
+                "total_outages": len(self._outages),
+                "active_outages": len([o for o in self._outages if o.is_active]),
+                "recovered_outages": len([o for o in self._outages if not o.is_active]),
+                "services": {},
             }
 
+            services: Dict[str, Dict[str, Any]] = {}
             for outage in self._outages:
-                if outage.service not in summary['services']:
-                    summary['services'][outage.service] = {
-                        'outage_count': 0,
-                        'total_duration': timedelta(),
-                        'is_active': False
+                if outage.service not in services:
+                    services[outage.service] = {
+                        "outage_count": 0,
+                        "total_duration": timedelta(),
+                        "is_active": False,
                     }
 
-                svc = summary['services'][outage.service]
-                svc['outage_count'] += 1
+                svc = services[outage.service]
+                svc["outage_count"] += 1
                 if outage.duration:
-                    svc['total_duration'] += outage.duration
+                    svc["total_duration"] += outage.duration
                 if outage.is_active:
-                    svc['is_active'] = True
+                    svc["is_active"] = True
+
+            summary["services"] = services
 
             return summary
 
@@ -495,13 +511,13 @@ class ServiceDegradationHandler:
         """Mark a service as degraded."""
         with self._lock:
             self._degraded_services[service] = True
-            logger.warning(f"Service {service} marked as degraded")
+            logger.warning("Service %s marked as degraded", service)
 
     def mark_healthy(self, service: str) -> None:
         """Mark a service as healthy."""
         with self._lock:
             self._degraded_services[service] = False
-            logger.info(f"Service {service} marked as healthy")
+            logger.info("Service %s marked as healthy", service)
 
     def is_degraded(self, service: str) -> bool:
         """Check if a service is degraded."""
@@ -514,11 +530,13 @@ class ServiceDegradationHandler:
     def buffer_alert(self, alert: Dict[str, Any]) -> None:
         """Buffer an alert for later delivery when SNS recovers."""
         with self._lock:
-            self._buffered_alerts.append({
-                **alert,
-                'buffered_at': datetime.now(timezone.utc).isoformat()
-            })
-            logger.info(f"Alert buffered for later delivery. Buffer size: {len(self._buffered_alerts)}")
+            self._buffered_alerts.append(
+                {**alert, "buffered_at": datetime.now(timezone.utc).isoformat()}
+            )
+            logger.info(
+                "Alert buffered for later delivery. Buffer size: %s",
+                len(self._buffered_alerts),
+            )
 
     def get_buffered_alerts(self) -> List[Dict[str, Any]]:
         """Get all buffered alerts."""
@@ -548,7 +566,7 @@ class WiFiReconnectionHandler:
     def __init__(
         self,
         ssids: Optional[List[str]] = None,
-        backoff_config: Optional[BackoffConfig] = None
+        backoff_config: Optional[BackoffConfig] = None,
     ):
         """
         Initialize WiFi reconnection handler.
@@ -558,12 +576,15 @@ class WiFiReconnectionHandler:
             backoff_config: Backoff configuration for retries.
         """
         self.ssids = ssids or []
-        self.backoff = ExponentialBackoff(backoff_config or BackoffConfig(
-            initial_delay=5.0,
-            multiplier=2.0,
-            max_delay=300.0,  # 5 minutes max
-            max_attempts=100  # Keep trying for a long time
-        ))
+        self.backoff = ExponentialBackoff(
+            backoff_config
+            or BackoffConfig(
+                initial_delay=5.0,
+                multiplier=2.0,
+                max_delay=300.0,  # 5 minutes max
+                max_attempts=100,  # Keep trying for a long time
+            )
+        )
         self._connected = False
         self._current_ssid: Optional[str] = None
         self._lock = threading.Lock()
@@ -588,7 +609,7 @@ class WiFiReconnectionHandler:
 
             if connected and not was_connected:
                 self.backoff.reset()
-                logger.info(f"WiFi connected to {ssid}")
+                logger.info("WiFi connected to %s", ssid)
             elif not connected and was_connected:
                 logger.warning("WiFi disconnected")
 
@@ -622,7 +643,7 @@ class WiFiReconnectionHandler:
         Returns:
             True if reconnection succeeded.
         """
-        for ssid in self.ssids or [self._current_ssid]:
+        for ssid in self.ssids or ([self._current_ssid] if self._current_ssid else []):
             if ssid and connect_func(ssid):
                 self.set_connected(True, ssid)
                 return True
@@ -696,7 +717,7 @@ class ConnectionRetryManager:
     def __init__(
         self,
         wifi_handler: Optional[WiFiReconnectionHandler] = None,
-        aws_handler: Optional[AWSReconnectionHandler] = None
+        aws_handler: Optional[AWSReconnectionHandler] = None,
     ):
         """
         Initialize connection retry manager.
@@ -717,7 +738,7 @@ class ConnectionRetryManager:
         self,
         service: str,
         operation: Callable[[], T],
-        max_retries: Optional[int] = None
+        max_retries: Optional[int] = None,
     ) -> Optional[T]:
         """
         Execute an operation with retry logic.
@@ -738,7 +759,7 @@ class ConnectionRetryManager:
 
         while backoff.should_retry():
             if not cb.can_execute():
-                logger.debug(f"Circuit open for {service}, failing fast")
+                logger.debug("Circuit open for %s, failing fast", service)
                 return None
 
             try:
@@ -748,10 +769,10 @@ class ConnectionRetryManager:
                 self.degradation.mark_healthy(service)
                 self.recovery_tracker.record_recovery(service)
                 return result
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 cb.record_failure()
                 backoff.get_next_delay()
-                logger.warning(f"Operation failed for {service}: {e}")
+                logger.warning("Operation failed for %s: %s", service, e)
 
                 if not backoff.should_retry():
                     self.degradation.mark_degraded(service)
@@ -767,12 +788,14 @@ class ConnectionRetryManager:
     def get_service_status(self) -> Dict[str, Any]:
         """Get status of all tracked services."""
         return {
-            'wifi_connected': self.wifi.is_connected,
-            'degraded_services': [
-                s for s, d in self.degradation._degraded_services.items() if d
+            "wifi_connected": self.wifi.is_connected,
+            "degraded_services": [
+                s
+                for s, d in self.degradation._degraded_services.items()  # pylint: disable=protected-access
+                if d
             ],
-            'active_outages': self.recovery_tracker.get_active_outages(),
-            'connection_pool_size': self.connection_pool.size
+            "active_outages": self.recovery_tracker.get_active_outages(),
+            "connection_pool_size": self.connection_pool.size,
         }
 
 
@@ -788,24 +811,24 @@ class PartialUploadTracker:
         """Record start of an upload."""
         with self._lock:
             self._uploads[upload_id] = {
-                'total_size': total_size,
-                'uploaded_bytes': 0,
-                'parts': [],
-                'started_at': datetime.now(timezone.utc)
+                "total_size": total_size,
+                "uploaded_bytes": 0,
+                "parts": [],
+                "started_at": datetime.now(timezone.utc),
             }
 
     def record_part(self, upload_id: str, part_number: int, size: int) -> None:
         """Record a successfully uploaded part."""
         with self._lock:
             if upload_id in self._uploads:
-                self._uploads[upload_id]['parts'].append(part_number)
-                self._uploads[upload_id]['uploaded_bytes'] += size
+                self._uploads[upload_id]["parts"].append(part_number)
+                self._uploads[upload_id]["uploaded_bytes"] += size
 
     def get_resume_point(self, upload_id: str) -> Optional[int]:
         """Get the byte offset to resume from."""
         with self._lock:
             if upload_id in self._uploads:
-                return self._uploads[upload_id]['uploaded_bytes']
+                return self._uploads[upload_id]["uploaded_bytes"]
             return None
 
     def is_resumable(self, upload_id: str) -> bool:
@@ -837,5 +860,7 @@ def make_idempotent(operation_id: str) -> Callable:
             result = func(*args, **kwargs)
             _completed_operations[operation_id] = result
             return result
+
         return wrapper
+
     return decorator

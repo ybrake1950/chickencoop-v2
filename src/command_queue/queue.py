@@ -117,7 +117,8 @@ class CommandQueue:
         """Remove all commands whose TTL has elapsed."""
         now = time.time()
         self._queue = [
-            cmd for cmd in self._queue
+            cmd
+            for cmd in self._queue
             if cmd.ttl_seconds is None or (now - cmd.created_at) < cmd.ttl_seconds
         ]
 
@@ -127,15 +128,17 @@ class CommandQueue:
             return
         data = []
         for cmd in self._queue:
-            data.append({
-                "action": cmd.action,
-                "params": cmd.params,
-                "user_id": cmd.user_id,
-                "idempotency_key": cmd.idempotency_key,
-                "ttl_seconds": cmd.ttl_seconds,
-                "user_role": cmd.user_role,
-                "created_at": cmd.created_at,
-            })
+            data.append(
+                {
+                    "action": cmd.action,
+                    "params": cmd.params,
+                    "user_id": cmd.user_id,
+                    "idempotency_key": cmd.idempotency_key,
+                    "ttl_seconds": cmd.ttl_seconds,
+                    "user_role": cmd.user_role,
+                    "created_at": cmd.created_at,
+                }
+            )
         self._storage_path.write_text(json.dumps(data))
 
     def load(self) -> None:

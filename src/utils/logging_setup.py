@@ -4,6 +4,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Optional
 
 
 def get_logger(name: str) -> logging.Logger:
@@ -25,8 +26,8 @@ def _is_our_handler(handler: logging.Handler) -> bool:
 
 
 def setup_logging(
-    level: int = None,
-    log_file: Path = None,
+    level: Optional[int] = None,
+    log_file: Optional[Path] = None,
     console: bool = True,
     include_coop_id: bool = False,
 ) -> None:
@@ -71,7 +72,9 @@ def setup_logging(
     if console:
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(formatter)
-        console_handler._chickencoop_handler = True
+        setattr(
+            console_handler, "_chickencoop_handler", True
+        )  # pylint: disable=protected-access
         root_logger.addHandler(console_handler)
 
     # File handler
@@ -80,7 +83,9 @@ def setup_logging(
         log_file.parent.mkdir(parents=True, exist_ok=True)
         file_handler = logging.FileHandler(log_file)
         file_handler.setFormatter(formatter)
-        file_handler._chickencoop_handler = True
+        setattr(
+            file_handler, "_chickencoop_handler", True
+        )  # pylint: disable=protected-access
         root_logger.addHandler(file_handler)
 
 
@@ -120,5 +125,7 @@ def setup_logging_with_rotation(
         backupCount=backup_count,
     )
     rotating_handler.setFormatter(formatter)
-    rotating_handler._chickencoop_handler = True
+    setattr(
+        rotating_handler, "_chickencoop_handler", True
+    )  # pylint: disable=protected-access
     root_logger.addHandler(rotating_handler)

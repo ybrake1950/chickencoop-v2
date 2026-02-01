@@ -22,14 +22,11 @@ class SensorError(ChickenCoopError):
 
 class AWSError(ChickenCoopError):
     """Raised for AWS service errors."""
-    pass
 
 
 class ValidationError(ChickenCoopError):
     """Raised for data validation errors."""
-    pass
 
 
 class ConfigurationError(ChickenCoopError):
     """Raised for configuration errors."""
-    pass

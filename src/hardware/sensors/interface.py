@@ -42,4 +42,3 @@ class Sensor:
 
 class SensorReadError(Exception):
     """Exception raised when sensor read operation fails."""
-    pass

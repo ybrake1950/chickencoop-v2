@@ -55,6 +55,7 @@ class Tracer:
     def end_span(self, span: Span) -> None:
         """End a span by recording the finish time and computing duration."""
         span.end_time = datetime.now(timezone.utc)
+        assert span.start_time is not None
         span.duration_ms = (span.end_time - span.start_time).total_seconds() * 1000
 
     def log_with_trace(self, span: Span, message: str) -> None:
@@ -92,9 +93,15 @@ class TraceVisualization:
 class TraceAnalyzer:
     """Analyzes collected trace spans."""
 
-    def find_slow_spans(self, spans: List[Span], threshold_ms: float = 1000) -> List[Span]:
+    def find_slow_spans(
+        self, spans: List[Span], threshold_ms: float = 1000
+    ) -> List[Span]:
         """Return spans whose duration exceeds the given threshold in milliseconds."""
-        return [s for s in spans if s.duration_ms is not None and s.duration_ms >= threshold_ms]
+        return [
+            s
+            for s in spans
+            if s.duration_ms is not None and s.duration_ms >= threshold_ms
+        ]
 
     def find_error_spans(self, spans: List[Span]) -> List[Span]:
         """Return spans that have an error recorded."""
@@ -114,4 +121,5 @@ class TraceAnalyzer:
             if s.parent_span_id and s.parent_span_id in span_map:
                 span_map[s.parent_span_id].children.append(s)
 
+        assert root is not None
         return TraceVisualization(root_span=root)

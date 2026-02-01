@@ -5,10 +5,10 @@ Provides SensorMonitor class for managing multiple sensors,
 collecting readings, and detecting anomalies.
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 import logging
 
-from .interface import Sensor, SensorReadError
+from .interface import Sensor
 
 
 logger = logging.getLogger(__name__)
@@ -56,8 +56,8 @@ class SensorMonitor:
             try:
                 reading = sensor.read()
                 readings[sensor.name] = reading
-            except Exception as e:
-                logger.error(f"Failed to read sensor {sensor.name}: {e}")
+            except Exception as e:  # pylint: disable=broad-exception-caught
+                logger.error("Failed to read sensor %s: %s", sensor.name, e)
                 readings[sensor.name] = None
                 readings[f"{sensor.name}_error"] = str(e)
 
@@ -73,7 +73,9 @@ class SensorMonitor:
         """
         self.spike_thresholds[sensor_type] = threshold
 
-    def is_spike(self, sensor_type: str, previous_value: float, current_value: float) -> bool:
+    def is_spike(
+        self, sensor_type: str, previous_value: float, current_value: float
+    ) -> bool:
         """
         Detect if current reading represents a spike.
 

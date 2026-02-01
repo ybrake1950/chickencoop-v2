@@ -12,19 +12,20 @@ from typing import Dict, Any, Optional, List
 # Exceptions
 # =============================================================================
 
+
 class ValidationError(Exception):
     """Raised when model validation fails."""
-    pass
 
 
 # =============================================================================
 # Chicken Model
 # =============================================================================
 
+
 class Chicken:
     """Model representing a chicken in the registry."""
 
-    _unique_fields = ['name']
+    _unique_fields = ["name"]
 
     def __init__(
         self,
@@ -35,7 +36,7 @@ class Chicken:
         date_registered: Optional[datetime] = None,
         color_profile: Optional[Dict[str, Any]] = None,
         size_profile: Optional[Dict[str, Any]] = None,
-        notes: Optional[str] = None
+        notes: Optional[str] = None,
     ):
         """Initialize a chicken record.
 
@@ -69,34 +70,37 @@ class Chicken:
             "breed": self.breed,
             "color": self.color,
             "is_active": self.is_active,
-            "date_registered": self.date_registered.isoformat() if self.date_registered else None,
+            "date_registered": (
+                self.date_registered.isoformat() if self.date_registered else None
+            ),
             "color_profile": self.color_profile,
             "size_profile": self.size_profile,
-            "notes": self.notes
+            "notes": self.notes,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Chicken':
+    def from_dict(cls, data: Dict[str, Any]) -> "Chicken":
         """Create Chicken instance from dictionary."""
-        date_registered = data.get('date_registered')
+        date_registered = data.get("date_registered")
         if date_registered and isinstance(date_registered, str):
             date_registered = datetime.fromisoformat(date_registered)
 
         return cls(
-            name=data['name'],
-            breed=data['breed'],
-            color=data.get('color'),
-            is_active=data.get('is_active', True),
+            name=data["name"],
+            breed=data["breed"],
+            color=data.get("color"),
+            is_active=data.get("is_active", True),
             date_registered=date_registered,
-            color_profile=data.get('color_profile'),
-            size_profile=data.get('size_profile'),
-            notes=data.get('notes')
+            color_profile=data.get("color_profile"),
+            size_profile=data.get("size_profile"),
+            notes=data.get("notes"),
         )
 
 
 # =============================================================================
 # HeadcountLog Model
 # =============================================================================
+
 
 class HeadcountLog:
     """Model representing a headcount log entry."""
@@ -108,7 +112,7 @@ class HeadcountLog:
         confidence: Optional[float] = None,
         method: Optional[str] = None,
         image_path: Optional[str] = None,
-        timestamp: Optional[datetime] = None
+        timestamp: Optional[datetime] = None,
     ):
         """Initialize a headcount log entry.
 
@@ -152,7 +156,7 @@ class HeadcountLog:
             "method": self.method,
             "image_path": self.image_path,
             "timestamp": self.timestamp.isoformat() if self.timestamp else None,
-            "missing_count": self.missing_count
+            "missing_count": self.missing_count,
         }
 
     def to_api_response(self) -> Dict[str, Any]:
@@ -163,29 +167,30 @@ class HeadcountLog:
             "all_present": self.all_present,
             "confidence": self.confidence,
             "method": self.method,
-            "timestamp": self.timestamp.isoformat() if self.timestamp else None
+            "timestamp": self.timestamp.isoformat() if self.timestamp else None,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'HeadcountLog':
+    def from_dict(cls, data: Dict[str, Any]) -> "HeadcountLog":
         """Create HeadcountLog instance from dictionary."""
-        timestamp = data.get('timestamp')
+        timestamp = data.get("timestamp")
         if timestamp and isinstance(timestamp, str):
             timestamp = datetime.fromisoformat(timestamp)
 
         return cls(
-            count_detected=data['count_detected'],
-            expected_count=data['expected_count'],
-            confidence=data.get('confidence'),
-            method=data.get('method'),
-            image_path=data.get('image_path'),
-            timestamp=timestamp
+            count_detected=data["count_detected"],
+            expected_count=data["expected_count"],
+            confidence=data.get("confidence"),
+            method=data.get("method"),
+            image_path=data.get("image_path"),
+            timestamp=timestamp,
         )
 
 
 # =============================================================================
 # ChickenRegistry Collection
 # =============================================================================
+
 
 class ChickenRegistry:
     """Collection for managing multiple chickens."""

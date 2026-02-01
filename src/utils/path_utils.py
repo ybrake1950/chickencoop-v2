@@ -4,6 +4,7 @@ import os
 import re
 from pathlib import Path
 from datetime import datetime, date
+from typing import Optional
 
 
 def get_project_root() -> Path:
@@ -84,7 +85,9 @@ def ensure_dir(path: Path) -> Path:
     return path
 
 
-def get_video_path(camera: str, timestamp: datetime, trigger: str = None) -> Path:
+def get_video_path(
+    camera: str, timestamp: datetime, trigger: Optional[str] = None
+) -> Path:
     """
     Generate video file path.
 
@@ -102,7 +105,7 @@ def get_video_path(camera: str, timestamp: datetime, trigger: str = None) -> Pat
     return get_data_dir() / "videos" / filename
 
 
-def get_csv_path(date: date) -> Path:
+def get_csv_path(date: date) -> Path:  # pylint: disable=redefined-outer-name
     """
     Generate CSV file path for sensor data.
 

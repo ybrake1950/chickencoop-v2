@@ -17,7 +17,7 @@ class AlertService:
         temp_max: float = 90.0,
         temp_min: Optional[float] = None,
         humidity_max: Optional[float] = None,
-        humidity_min: Optional[float] = None
+        humidity_min: Optional[float] = None,
     ):
         """Initialize alert service with thresholds.
 
@@ -49,7 +49,7 @@ class AlertService:
             self._sns_client.publish_temperature_alert(
                 coop_id=reading.coop_id,
                 temperature=reading.temperature,
-                threshold=self._temp_max
+                threshold=self._temp_max,
             )
             alert_sent = True
 
@@ -57,7 +57,7 @@ class AlertService:
             self._sns_client.publish_temperature_alert(
                 coop_id=reading.coop_id,
                 temperature=reading.temperature,
-                threshold=self._temp_min
+                threshold=self._temp_min,
             )
             alert_sent = True
 

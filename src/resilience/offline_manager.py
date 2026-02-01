@@ -11,9 +11,8 @@ This module provides functionality for:
 
 import gzip
 import json
-import os
 import shutil
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -22,6 +21,7 @@ from typing import Any, Dict, List, Optional
 @dataclass
 class WiFiStatus:
     """Represents WiFi connection status."""
+
     connected: bool
     interface: str = "wlan0"
     signal_strength: Optional[int] = None
@@ -32,12 +32,7 @@ class OfflineOperationManager:
     """Manages system operation during network outages."""
 
     # Priority levels for severity-based sorting
-    SEVERITY_PRIORITY = {
-        "critical": 0,
-        "warning": 1,
-        "info": 2,
-        "normal": 3
-    }
+    SEVERITY_PRIORITY = {"critical": 0, "warning": 1, "info": 2, "normal": 3}
 
     def __init__(
         self,
@@ -47,7 +42,7 @@ class OfflineOperationManager:
         enable_compression: bool = False,
         video_retention_days: int = 7,
         network_check_interval: int = 30,
-        config: Optional[Dict[str, Any]] = None
+        config: Optional[Dict[str, Any]] = None,
     ):
         """Initialize the offline operation manager.
 
@@ -124,7 +119,7 @@ class OfflineOperationManager:
         return WiFiStatus(
             connected=connected,
             interface="wlan0",
-            signal_strength=self._get_signal_strength() if connected else None
+            signal_strength=self._get_signal_strength() if connected else None,
         )
 
     def _check_interface_status(self) -> bool:
@@ -140,7 +135,7 @@ class OfflineOperationManager:
         """
         return self._ping_host("8.8.8.8")
 
-    def _ping_host(self, host: str) -> bool:
+    def _ping_host(self, _host: str) -> bool:
         """Ping a host to check connectivity. Override in tests."""
         return True
 
@@ -183,19 +178,20 @@ class OfflineOperationManager:
             self._offline_mode = True
             self._offline_since = datetime.now()
             self._log(f"Entering offline mode at {self._offline_since.isoformat()}")
-            self._connectivity_events.append({
-                "event_type": "disconnected",
-                "timestamp": self._offline_since.isoformat()
-            })
+            self._connectivity_events.append(
+                {
+                    "event_type": "disconnected",
+                    "timestamp": self._offline_since.isoformat(),
+                }
+            )
         elif not offline and self._offline_mode:
             # Exiting offline mode
             self._offline_mode = False
             reconnect_time = datetime.now()
             self._log(f"Exiting offline mode at {reconnect_time.isoformat()}")
-            self._connectivity_events.append({
-                "event_type": "reconnected",
-                "timestamp": reconnect_time.isoformat()
-            })
+            self._connectivity_events.append(
+                {"event_type": "reconnected", "timestamp": reconnect_time.isoformat()}
+            )
             self._offline_since = None
 
     def set_online_status(self, status: bool) -> None:
@@ -214,7 +210,9 @@ class OfflineOperationManager:
         """
         return {
             "online": not self._offline_mode,
-            "offline_since": self._offline_since.isoformat() if self._offline_since else None
+            "offline_since": (
+                self._offline_since.isoformat() if self._offline_since else None
+            ),
         }
 
     def get_offline_duration(self) -> Optional[timedelta]:
@@ -241,12 +239,11 @@ class OfflineOperationManager:
             Result dictionary with success status.
         """
         self.buffer_sensor_data(reading)
-        return {
-            "success": True,
-            "stored_locally": True
-        }
+        return {"success": True, "stored_locally": True}
 
-    def process_motion_event(self, detected: bool, timestamp: datetime) -> Dict[str, bool]:
+    def process_motion_event(
+        self, detected: bool, timestamp: datetime
+    ) -> Dict[str, bool]:
         """Process a motion detection event.
 
         Args:
@@ -259,13 +256,10 @@ class OfflineOperationManager:
         event = {
             "type": "motion",
             "detected": detected,
-            "timestamp": timestamp.isoformat()
+            "timestamp": timestamp.isoformat(),
         }
         self._sensor_buffer.append(event)
-        return {
-            "success": True,
-            "event_logged": True
-        }
+        return {"success": True, "event_logged": True}
 
     def request_video_recording(self, trigger: str, duration: int) -> Dict[str, Any]:
         """Request a video recording.
@@ -281,10 +275,12 @@ class OfflineOperationManager:
             "success": True,
             "storage_location": "local" if self._offline_mode else "cloud",
             "trigger": trigger,
-            "duration": duration
+            "duration": duration,
         }
 
-    def process_headcount(self, count: int, expected: int, confidence: float) -> Dict[str, Any]:
+    def process_headcount(
+        self, count: int, expected: int, confidence: float
+    ) -> Dict[str, Any]:
         """Process a headcount result.
 
         Args:
@@ -300,13 +296,10 @@ class OfflineOperationManager:
             "count": count,
             "expected": expected,
             "confidence": confidence,
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
         self._sensor_buffer.append(result)
-        return {
-            "success": True,
-            "stored_locally": True
-        }
+        return {"success": True, "stored_locally": True}
 
     def trigger_local_alert(self, alert_type: str) -> Dict[str, Any]:
         """Trigger a local alert (LED, buzzer).
@@ -317,16 +310,15 @@ class OfflineOperationManager:
         Returns:
             Result dictionary with alert details.
         """
-        return {
-            "success": True,
-            "alert_type": alert_type
-        }
+        return {"success": True, "alert_type": alert_type}
 
     # =========================================================================
     # Data Buffering Methods
     # =========================================================================
 
-    def buffer_sensor_data(self, reading: Dict[str, Any], priority: str = "normal") -> None:
+    def buffer_sensor_data(
+        self, reading: Dict[str, Any], priority: str = "normal"
+    ) -> None:
         """Buffer sensor data for later sync.
 
         Args:
@@ -336,7 +328,7 @@ class OfflineOperationManager:
         buffered_reading = {
             **reading,
             "buffered_at": datetime.now().isoformat(),
-            "priority": priority
+            "priority": priority,
         }
         self._sensor_buffer.append(buffered_reading)
 
@@ -354,7 +346,9 @@ class OfflineOperationManager:
         Returns:
             List of critical priority items.
         """
-        return [item for item in self._sensor_buffer if item.get("priority") == "critical"]
+        return [
+            item for item in self._sensor_buffer if item.get("priority") == "critical"
+        ]
 
     def get_buffer_size_mb(self) -> float:
         """Get current buffer size in MB.
@@ -376,7 +370,7 @@ class OfflineOperationManager:
         # Load existing data if present
         existing_data = []
         if buffer_file.exists():
-            with open(buffer_file, "r") as f:
+            with open(buffer_file, "r", encoding="utf-8") as f:
                 existing_data = json.load(f)
 
         # Combine and save
@@ -387,7 +381,7 @@ class OfflineOperationManager:
             with gzip.open(compressed_file, "wt") as f:
                 json.dump(all_data, f)
         else:
-            with open(buffer_file, "w") as f:
+            with open(buffer_file, "w", encoding="utf-8") as f:
                 json.dump(all_data, f)
 
     def _load_persisted_buffer(self) -> None:
@@ -399,7 +393,7 @@ class OfflineOperationManager:
             with gzip.open(compressed_file, "rt") as f:
                 self._sensor_buffer = json.load(f)
         elif buffer_file.exists():
-            with open(buffer_file, "r") as f:
+            with open(buffer_file, "r", encoding="utf-8") as f:
                 self._sensor_buffer = json.load(f)
 
     # =========================================================================
@@ -410,7 +404,7 @@ class OfflineOperationManager:
         self,
         video_data: bytes,
         filename: str,
-        metadata: Optional[Dict[str, Any]] = None
+        metadata: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """Store a video file locally.
 
@@ -432,20 +426,15 @@ class OfflineOperationManager:
         if metadata:
             self._video_metadata[filename] = {
                 **metadata,
-                "stored_at": datetime.now().isoformat()
+                "stored_at": datetime.now().isoformat(),
             }
         else:
-            self._video_metadata[filename] = {
-                "stored_at": datetime.now().isoformat()
-            }
+            self._video_metadata[filename] = {"stored_at": datetime.now().isoformat()}
 
         # Mark for upload
         self._videos_pending_upload.append(filename)
 
-        return {
-            "success": True,
-            "local_path": str(video_path)
-        }
+        return {"success": True, "local_path": str(video_path)}
 
     def get_video_metadata(self, filename: str) -> Dict[str, Any]:
         """Get metadata for a stored video.
@@ -468,7 +457,7 @@ class OfflineOperationManager:
         return {
             "available_mb": stat.free / (1024 * 1024),
             "total_mb": stat.total / (1024 * 1024),
-            "percent_free": (stat.free / stat.total) * 100
+            "percent_free": (stat.free / stat.total) * 100,
         }
 
     def cleanup_old_videos(self) -> Dict[str, Any]:
@@ -487,10 +476,7 @@ class OfflineOperationManager:
                 video_file.unlink()
                 deleted_count += 1
 
-        return {
-            "deleted_count": deleted_count,
-            "freed_mb": freed_bytes / (1024 * 1024)
-        }
+        return {"deleted_count": deleted_count, "freed_mb": freed_bytes / (1024 * 1024)}
 
     def get_videos_pending_upload(self) -> List[str]:
         """Get list of videos pending upload.
@@ -561,7 +547,9 @@ class OfflineOperationManager:
         """Clear all pending operations."""
         self._pending_operations.clear()
 
-    def safe_cloud_operation(self, operation: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    def safe_cloud_operation(
+        self, operation: str, data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Perform a cloud operation with error handling.
 
         Args:
@@ -574,16 +562,11 @@ class OfflineOperationManager:
         try:
             self._send_to_cloud(operation, data)
             return {"success": True}
-        except Exception as e:
-            return {
-                "success": False,
-                "error_handled": True,
-                "error_message": str(e)
-            }
+        except Exception as e:  # pylint: disable=broad-exception-caught
+            return {"success": False, "error_handled": True, "error_message": str(e)}
 
     def _send_to_cloud(self, operation: str, data: Dict[str, Any]) -> None:
         """Send data to cloud. Override in tests."""
-        pass
 
     # =========================================================================
     # Alert Buffering Methods
@@ -598,10 +581,7 @@ class OfflineOperationManager:
         Returns:
             Result dictionary.
         """
-        buffered_alert = {
-            **alert,
-            "timestamp": datetime.now().isoformat()
-        }
+        buffered_alert = {**alert, "timestamp": datetime.now().isoformat()}
         self._alert_buffer.append(buffered_alert)
         return {"buffered": True}
 
@@ -621,7 +601,7 @@ class OfflineOperationManager:
         """
         return sorted(
             self._alert_buffer,
-            key=lambda x: self.SEVERITY_PRIORITY.get(x.get("severity", "normal"), 3)
+            key=lambda x: self.SEVERITY_PRIORITY.get(x.get("severity", "normal"), 3),
         )
 
     def get_deduplicated_alerts(self) -> List[Dict[str, Any]]:
@@ -655,14 +635,8 @@ class OfflineOperationManager:
             Dictionary with LED state information.
         """
         if self._offline_mode:
-            return {
-                "status": "offline",
-                "color": "red"
-            }
-        return {
-            "status": "online",
-            "color": "green"
-        }
+            return {"status": "offline", "color": "red"}
+        return {"status": "online", "color": "green"}
 
     def get_connectivity_events(self) -> List[Dict[str, Any]]:
         """Get connectivity event history.

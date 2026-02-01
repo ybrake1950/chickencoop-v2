@@ -1,6 +1,6 @@
 """Alert aggregation: debouncing, digests, cooldowns, trends, and predictions."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -8,12 +8,14 @@ from typing import Any, Dict, List, Optional
 @dataclass
 class DebounceSummary:
     """Summary of suppressed alerts after debounce window."""
+
     suppressed_count: int
 
 
 @dataclass
 class AlertDigest:
     """Digest summary of accumulated alerts."""
+
     total_alerts: int
     counts_by_type: Dict[str, int]
     max_value: Optional[float]
@@ -23,12 +25,14 @@ class AlertDigest:
 @dataclass
 class CooldownResult:
     """Result of a cooldown check."""
+
     can_send: bool
 
 
 @dataclass
 class TrendResult:
     """Result of trend detection."""
+
     direction: str
     rate_per_hour: float
 
@@ -36,6 +40,7 @@ class TrendResult:
 @dataclass
 class PredictionResult:
     """Result of a predictive breach analysis."""
+
     will_breach: bool
     estimated_time: Optional[datetime]
     minutes_until_breach: float
@@ -60,7 +65,9 @@ class AlertDebouncer:
         self._suppressed[alert_type] = self._suppressed.get(alert_type, 0) + 1
         return False
 
-    def get_summary(self, alert_type: str, timestamp: datetime) -> Optional[DebounceSummary]:
+    def get_summary(
+        self, alert_type: str, timestamp: datetime
+    ) -> Optional[DebounceSummary]:
         """Return a summary of suppressed alerts if the debounce window has elapsed."""
         last = self._last_sent.get(alert_type)
         if last is None:
@@ -90,10 +97,14 @@ class AlertAggregator:
         """Add an alert to the aggregation buffer for digest generation."""
         self._alerts.append(alert)
 
-    def generate_digest(self, period: str = "daily") -> Optional[AlertDigest]:
+    def generate_digest(  # pylint: disable=unused-argument
+        self, period: str = "daily"
+    ) -> Optional[AlertDigest]:
         """Generate a digest summarizing all accumulated alerts with counts and extremes."""
         if not self._alerts:
-            return AlertDigest(total_alerts=0, counts_by_type={}, max_value=None, min_value=None)
+            return AlertDigest(
+                total_alerts=0, counts_by_type={}, max_value=None, min_value=None
+            )
 
         counts: Dict[str, int] = {}
         values: List[float] = []

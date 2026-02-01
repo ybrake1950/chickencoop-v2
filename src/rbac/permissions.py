@@ -8,14 +8,28 @@ from typing import List, Optional
 @dataclass
 class Permission:
     """A named permission."""
+
     name: str
 
 
 # Role-to-permissions mapping
 ROLE_PERMISSIONS = {
     "viewer": ["video:view", "settings:read"],
-    "admin": ["video:view", "video:delete", "settings:read", "settings:write", "admin:manage"],
-    "owner": ["video:view", "video:delete", "settings:read", "settings:write", "admin:manage", "admin:delete"],
+    "admin": [
+        "video:view",
+        "video:delete",
+        "settings:read",
+        "settings:write",
+        "admin:manage",
+    ],
+    "owner": [
+        "video:view",
+        "video:delete",
+        "settings:read",
+        "settings:write",
+        "admin:manage",
+        "admin:delete",
+    ],
 }
 
 # All defined permissions
@@ -32,6 +46,7 @@ ALL_PERMISSIONS = [
 @dataclass
 class UserRecord:
     """Tracks per-user data such as assigned coops."""
+
     user_id: str
     assigned_coops: List[str] = field(default_factory=list)
 
@@ -80,15 +95,20 @@ class PermissionChecker:
         return coop_id in self.user_coops
 
 
-def require_permission(permission_name: str, resource_param: Optional[str] = None):
+def require_permission(
+    permission_name: str, resource_param: Optional[str] = None
+):  # pylint: disable=unused-argument
     """Decorator that checks permission before executing the wrapped function."""
+
     def decorator(func):
         @functools.wraps(func)
         def wrapper(user, *args, **kwargs):
-            role = user.role if hasattr(user, 'role') else user.get('role')
+            role = user.role if hasattr(user, "role") else user.get("role")
             checker = PermissionChecker(role=role)
             if not checker.has_permission(permission_name):
                 raise PermissionError(f"Missing permission: {permission_name}")
             return func(user, *args, **kwargs)
+
         return wrapper
+
     return decorator
