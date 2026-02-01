@@ -84,8 +84,15 @@ def get_env_bool(name: str, default: bool = False) -> bool:
     """
     Get an environment variable as a boolean.
 
-    Truthy values: 'true', 'True', 'TRUE', '1', 'yes', 'Yes'
-    Falsy values: 'false', 'False', 'FALSE', '0', 'no', 'No'
+    Truthy values: 'true', '1', 'yes' (case-insensitive).
+    All other values are treated as falsy.
+
+    Args:
+        name: Name of the environment variable
+        default: Default value if not set
+
+    Returns:
+        The environment variable value as boolean, or default if not set
     """
     value = os.environ.get(name)
 

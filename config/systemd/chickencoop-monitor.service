@@ -6,14 +6,15 @@ Wants=network-online.target
 [Service]
 Type=simple
 User=pi
-WorkingDirectory=/home/pi/chickencoop
+WorkingDirectory=/home/pi/chickencoop-v2
 Environment="COOP_ID=default"
-ExecStartPre=/bin/bash -c 'sleep 5 && find /home/pi/chickencoop/videos/tmp -type f -mmin +60 -delete'
-ExecStart=/home/pi/chickencoop/venv/bin/python -m src.main
+EnvironmentFile=/home/pi/chickencoop-v2/.env
+ExecStartPre=/bin/bash -c 'sleep 5 && find /home/pi/chickencoop-v2/videos/tmp -type f -mmin +60 -delete'
+ExecStart=/home/pi/chickencoop-v2/venv/bin/python -m src.main
 Restart=always
 RestartSec=10
-StandardOutput=append:/home/pi/chickencoop/logs/coop-stdout.log
-StandardError=append:/home/pi/chickencoop/logs/coop-stderr.log
+StandardOutput=append:/home/pi/chickencoop-v2/logs/coop-stdout.log
+StandardError=append:/home/pi/chickencoop-v2/logs/coop-stderr.log
 
 [Install]
 WantedBy=multi-user.target

@@ -2402,13 +2402,15 @@ pytest tdd/phase21_configuration/service_config/test_systemd_production.py -v
 ### 21.3 Application Config (`test_config_production.py`)
 
 **Functionality Being Tested:**
-- AWS config has real values (not placeholders)
-- IoT endpoint, SNS ARN, S3 bucket are not template stubs
-- Config supports environment variable overrides
+- AWS config values are loaded from environment variables at runtime
+- IOT_ENDPOINT env var overrides iot.endpoint in aws_config.json
+- SNS_TOPIC_ARN env var overrides sns.topic_arn in aws_config.json
+- S3_BUCKET env var overrides s3.bucket in aws_config.json
+- Config loader supports environment variable overrides
 - Sensor read interval and recording duration are reasonable
 
 **Why This Matters:**
-Placeholder values cause silent runtime failures — S3 uploads fail, IoT messages drop, SNS alerts never arrive.
+Hard-coded AWS identifiers in committed JSON files expose account IDs, resource names, and endpoints in git history. Environment variable overrides keep secrets out of the repository and allow per-device configuration on deployed Raspberry Pis.
 
 **How Tests Are Executed:**
 
@@ -2419,9 +2421,9 @@ pytest tdd/phase21_configuration/app_config/test_config_production.py -v
 **Key Test Cases:**
 | Test | Purpose |
 |------|---------|
-| `test_iot_endpoint_not_placeholder` | Real IoT endpoint |
-| `test_sns_topic_arn_not_placeholder` | Real SNS ARN |
-| `test_s3_bucket_not_generic` | Real S3 bucket |
+| `test_iot_endpoint_from_env` | IOT_ENDPOINT env var overrides JSON |
+| `test_sns_topic_arn_from_env` | SNS_TOPIC_ARN env var overrides JSON |
+| `test_s3_bucket_from_env` | S3_BUCKET env var overrides JSON |
 | `test_sensor_read_interval_reasonable` | Sensible defaults |
 | `test_aws_config_supports_env_override` | Production flexibility |
 

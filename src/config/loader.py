@@ -52,6 +52,45 @@ def load_aws_config(path: Path) -> Dict[str, Any]:
     return load_config(path)
 
 
+def load_aws_config_with_overrides(path: Path) -> Dict[str, Any]:
+    """
+    Load AWS configuration from JSON and overlay environment variable overrides.
+
+    Environment variables take precedence over JSON values. Only non-empty
+    env vars are applied. Uses the same env var names as the AWS clients:
+        AWS_REGION    -> config["region"]
+        S3_BUCKET     -> config["s3"]["bucket"]
+        IOT_ENDPOINT  -> config["iot"]["endpoint"]
+        SNS_TOPIC_ARN -> config["sns"]["topic_arn"]
+
+    Args:
+        path: Path to the AWS configuration file
+
+    Returns:
+        Dictionary containing AWS configuration with env var overrides applied
+    """
+    config = load_aws_config(path)
+
+    env_overrides = {
+        "region": os.environ.get("AWS_REGION", ""),
+        "s3.bucket": os.environ.get("S3_BUCKET", ""),
+        "iot.endpoint": os.environ.get("IOT_ENDPOINT", ""),
+        "sns.topic_arn": os.environ.get("SNS_TOPIC_ARN", ""),
+    }
+
+    for key, value in env_overrides.items():
+        if not value:
+            continue
+        if "." in key:
+            section, field = key.split(".", 1)
+            if section in config and isinstance(config[section], dict):
+                config[section][field] = value
+        else:
+            config[key] = value
+
+    return config
+
+
 def load_device_config(path: Path) -> Dict[str, Any]:
     """
     Load device-specific configuration from a JSON file.
@@ -134,17 +173,34 @@ class ConfigLoader:
         self._config: Dict[str, Any] = {}
 
     def load(self, path: Path) -> Dict[str, Any]:
-        """Load configuration from a file."""
+        """
+        Load configuration from a JSON file and cache it.
+
+        Args:
+            path: Path to the configuration file
+
+        Returns:
+            Dictionary containing configuration data
+        """
         self._config = load_config(path)
         return self._config
 
     def get(self, key: str, default: Any = None) -> Any:
-        """Get a configuration value."""
+        """
+        Get a configuration value by key.
+
+        Args:
+            key: Configuration key to look up
+            default: Value to return if key is not found
+
+        Returns:
+            The configuration value, or default if not found
+        """
         return self._config.get(key, default)
 
     @property
     def data(self) -> Dict[str, Any]:
-        """Get the full configuration dictionary."""
+        """Get the full cached configuration dictionary."""
         return self._config
 
 

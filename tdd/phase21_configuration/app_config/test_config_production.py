@@ -4,27 +4,30 @@ Phase 21: Application Configuration Validation Tests
 
 FUNCTIONALITY BEING TESTED:
 ---------------------------
-This test module validates that production configuration files contain
-real values, not placeholder stubs:
-- aws_config.json has a real IoT endpoint (not placeholder)
-- aws_config.json has a real SNS topic ARN (not 123456789)
-- aws_config.json has a real S3 bucket name
+This test module validates that production configuration uses environment
+variable overrides for sensitive AWS values, not hard-coded JSON:
+- Environment variables override aws_config.json values at load time
+- IOT_ENDPOINT env var overrides iot.endpoint in JSON
+- SNS_TOPIC_ARN env var overrides sns.topic_arn in JSON
+- S3_BUCKET env var overrides s3.bucket in JSON
 - config.json has sensible production defaults
-- Configuration can be overridden by environment variables
+- Configuration loader supports environment variable overrides
 
 WHY THIS MATTERS:
 -----------------
-Placeholder values in configuration files cause silent runtime failures:
-S3 uploads fail, IoT messages drop, SNS alerts never arrive. These
-failures are hard to debug on remote Raspberry Pis without the right
-configuration in place first.
+Hard-coded AWS identifiers in committed JSON files expose account IDs,
+resource names, and endpoints in git history. Environment variable
+overrides keep secrets out of the repository and allow per-device
+configuration on deployed Raspberry Pis.
 
 HOW TESTS ARE EXECUTED:
 -----------------------
     pytest tdd/phase21_configuration/app_config/test_config_production.py -v
 """
 import json
+import os
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -69,43 +72,47 @@ def app_config(app_config_path):
     return json.loads(app_config_path.read_text())
 
 
-class TestAwsConfigNotPlaceholder:
-    """Verify AWS config has real values, not stubs."""
+class TestAwsConfigEnvOverrides:
+    """Verify AWS config values are loaded from environment variables."""
 
-    def test_iot_endpoint_not_placeholder(self, aws_config):
-        """IoT endpoint must not be the template placeholder."""
-        if aws_config is None:
-            pytest.skip("aws_config.json does not exist")
-        endpoint = aws_config.get('iot', {}).get('endpoint', '')
-        assert 'your-iot-endpoint' not in endpoint, (
-            f"IoT endpoint is still a placeholder: {endpoint}. "
-            "Replace with real AWS IoT endpoint or load from env var."
+    def test_iot_endpoint_from_env(self, aws_config_path):
+        """IOT_ENDPOINT env var must override the JSON value."""
+        from src.config.loader import load_aws_config_with_overrides
+
+        fake_endpoint = "abc123-ats.iot.us-east-1.amazonaws.com"
+        with patch.dict(os.environ, {"IOT_ENDPOINT": fake_endpoint}):
+            config = load_aws_config_with_overrides(aws_config_path)
+        assert config['iot']['endpoint'] == fake_endpoint, (
+            "IOT_ENDPOINT env var did not override iot.endpoint in aws_config.json. "
+            "Ensure load_aws_config_with_overrides applies IOT_ENDPOINT."
         )
 
-    def test_sns_topic_arn_not_placeholder(self, aws_config):
-        """SNS topic ARN must not contain placeholder account ID."""
-        if aws_config is None:
-            pytest.skip("aws_config.json does not exist")
-        arn = aws_config.get('sns', {}).get('topic_arn', '')
-        assert '123456789' not in arn, (
-            f"SNS topic ARN contains placeholder account: {arn}. "
-            "Replace with real AWS account ID or load from env var."
+    def test_sns_topic_arn_from_env(self, aws_config_path):
+        """SNS_TOPIC_ARN env var must override the JSON value."""
+        from src.config.loader import load_aws_config_with_overrides
+
+        fake_arn = "arn:aws:sns:us-east-1:999888777666:prod-alerts"
+        with patch.dict(os.environ, {"SNS_TOPIC_ARN": fake_arn}):
+            config = load_aws_config_with_overrides(aws_config_path)
+        assert config['sns']['topic_arn'] == fake_arn, (
+            "SNS_TOPIC_ARN env var did not override sns.topic_arn in aws_config.json. "
+            "Ensure load_aws_config_with_overrides applies SNS_TOPIC_ARN."
         )
 
-    def test_s3_bucket_not_generic(self, aws_config):
-        """S3 bucket name should be specific, not generic placeholder."""
-        if aws_config is None:
-            pytest.skip("aws_config.json does not exist")
-        bucket = aws_config.get('s3', {}).get('bucket', '')
-        generic_names = ['chickencoop-bucket', 'my-bucket', 'test-bucket', '']
-        assert bucket not in generic_names, (
-            f"S3 bucket name '{bucket}' looks like a placeholder. "
-            "Use the actual provisioned bucket name or load from env var."
+    def test_s3_bucket_from_env(self, aws_config_path):
+        """S3_BUCKET env var must override the JSON value."""
+        from src.config.loader import load_aws_config_with_overrides
+
+        fake_bucket = "my-prod-chickencoop-media"
+        with patch.dict(os.environ, {"S3_BUCKET": fake_bucket}):
+            config = load_aws_config_with_overrides(aws_config_path)
+        assert config['s3']['bucket'] == fake_bucket, (
+            "S3_BUCKET env var did not override s3.bucket in aws_config.json. "
+            "Ensure load_aws_config_with_overrides applies S3_BUCKET."
         )
 
     def test_aws_config_supports_env_override(self, config_dir):
         """Config loader should support environment variable overrides."""
-        # Verify the loader module supports env var overrides
         loader_path = config_dir / 'loader.py'
         if not loader_path.exists():
             pytest.skip("src/config/loader.py does not exist")
