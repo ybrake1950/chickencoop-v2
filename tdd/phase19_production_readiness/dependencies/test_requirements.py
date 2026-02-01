@@ -121,7 +121,7 @@ class TestRequiredDependenciesDeclared:
         'abc', 'ast', 'base64', 'collections', 'contextlib', 'csv',
         'dataclasses', 'datetime', 'enum', 'functools', 'gzip', 'hashlib',
         'hmac', 'io', 'json', 'logging', 'math', 'os', 'pathlib',
-        'random', 're', 'secrets', 'shlex', 'shutil', 'sqlite3',
+        'random', 're', 'secrets', 'shlex', 'shutil', 'signal', 'sqlite3',
         'statistics', 'subprocess', 'sys', 'threading', 'time', 'typing',
         'unittest', 'urllib', 'uuid', 'warnings', 'importlib',
         'configparser', 'socket', 'struct', 'tempfile', 'traceback',
@@ -136,6 +136,11 @@ class TestRequiredDependenciesDeclared:
         'np': 'numpy',
         'cv2': 'opencv-python-headless',
         'psutil': 'psutil',
+        'board': 'adafruit-blinka',
+        'busio': 'adafruit-blinka',
+        'adafruit_ahtx0': 'adafruit-circuitpython-ahtx0',
+        'smbus2': 'smbus2',
+        'picamera2': 'picamera2',
     }
 
     def _get_src_imports(self, src_dir):
@@ -153,6 +158,8 @@ class TestRequiredDependenciesDeclared:
                         if top not in self.KNOWN_STDLIB and top != 'src':
                             third_party.add(top)
                 elif isinstance(node, ast.ImportFrom):
+                    if node.level and node.level > 0:
+                        continue  # skip relative imports
                     if node.module:
                         top = node.module.split('.')[0]
                         if top not in self.KNOWN_STDLIB and top != 'src':
